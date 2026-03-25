@@ -49,6 +49,7 @@
                 showInDock: this.initialSettings.showInDock,
                 showInMenu: this.initialSettings.showInMenu,
                 alwaysOnTop: this.initialSettings.alwaysOnTop,
+                openAtLogin: this.initialSettings.openAtLogin,
                 bracketClosing: this.initialSettings.bracketClosing,
                 indentType: this.initialSettings.indentType || "space",
                 tabSize: this.initialSettings.tabSize || 4,
@@ -129,6 +130,7 @@
                     showInDock: this.showInDock,
                     showInMenu: this.showInMenu || !this.showInDock,
                     alwaysOnTop: this.alwaysOnTop,
+                    openAtLogin: this.openAtLogin,
                     autoUpdate: this.autoUpdate,
                     bracketClosing: this.bracketClosing,
                     indentType: this.indentType,
@@ -258,6 +260,14 @@
                                         @change="updateSettings"
                                     />
                                     Always on top
+                                </label>
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        v-model="openAtLogin"
+                                        @change="updateSettings"
+                                    />
+                                    Launch at login
                                 </label>
                             </div>
                         </div>

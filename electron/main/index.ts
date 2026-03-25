@@ -368,6 +368,14 @@ function registerShowInMenu() {
     }
 }
 
+function registerOpenAtLogin() {
+    const openAtLogin = CONFIG.get("settings.openAtLogin") as boolean
+    app.setLoginItemSettings({
+        openAtLogin,
+        ...(isMac ? { openAsHidden: true } : {}),
+    })
+}
+
 function registerAlwaysOnTop() {
     if (CONFIG.get("settings.alwaysOnTop")) {
         const setAlwaysOnTop = () => {
@@ -414,6 +422,7 @@ app.whenReady().then(createWindow).then(async () => {
     registerShowInDock()
     registerShowInMenu()
     registerAlwaysOnTop()
+    registerOpenAtLogin()
 })
 
 app.on("before-quit", () => {
@@ -534,6 +543,7 @@ ipcMain.handle('settings:set', async (event, settings) => {
     let showInMenuChanged = settings.showInMenu !== CONFIG.get("settings.showInMenu");
     let bufferPathChanged = settings.bufferPath !== CONFIG.get("settings.bufferPath");
     let alwaysOnTopChanged = settings.alwaysOnTop !== CONFIG.get("settings.alwaysOnTop");
+    let openAtLoginChanged = settings.openAtLogin !== CONFIG.get("settings.openAtLogin");
     CONFIG.set("settings", settings)
 
     win?.webContents.send(SETTINGS_CHANGE_EVENT, settings)
@@ -549,6 +559,9 @@ ipcMain.handle('settings:set', async (event, settings) => {
     }
     if (alwaysOnTopChanged) {
         registerAlwaysOnTop()
+    }
+    if (openAtLoginChanged) {
+        registerOpenAtLogin()
     }
     if (bufferPathChanged) {
         console.log("bufferPath changed, closing existing file library")
