@@ -6,6 +6,7 @@ import { spawn } from 'node:child_process'
 
 import { HeynotePage } from "./test-utils.js"
 
+const isLinux = process.platform === 'linux'
 
 async function ensureElectronBuild() {
     const mainPath = path.join(process.cwd(), 'dist-electron', 'main', 'index.js')
@@ -60,6 +61,19 @@ async function removeDirWithRetry(dirPath, retries = 5) {
     }
 }
 
+async function closeElectronApp(electronApp) {
+    if (!electronApp) return
+    const timeout = new Promise((resolve) => setTimeout(resolve, 5000))
+    await Promise.race([electronApp.close(), timeout])
+    // Force kill if still running
+    try {
+        const pid = electronApp.process().pid
+        if (pid) process.kill(pid, 'SIGKILL')
+    } catch {
+        // already exited
+    }
+}
+
 
 test.describe('openAtLogin e2e', { tag: "@e2e" }, () => {
     test.describe.configure({ mode: 'serial' })
@@ -93,13 +107,8 @@ test.describe('openAtLogin e2e', { tag: "@e2e" }, () => {
     })
 
     test.afterEach(async () => {
-        if (electronApp) {
-            // Reset login item before closing
-            await electronApp.evaluate(({ app }) => {
-                app.setLoginItemSettings({ openAtLogin: false })
-            })
-            await electronApp.close()
-        }
+        await closeElectronApp(electronApp)
+        electronApp = null
         if (await dirExists(tmpRoot)) {
             await removeDirWithRetry(tmpRoot)
         }
@@ -140,7 +149,12 @@ test.describe('openAtLogin e2e', { tag: "@e2e" }, () => {
         }).toBe(true)
     })
 
+    // app.getLoginItemSettings() only works reliably on macOS/Windows with
+    // proper desktop integration. On Linux CI (headless), it always returns false
+    // and can cause Electron to hang on close.
     test('TC-E2E-4: Toggle Launch at login updates Electron loginItemSettings', async () => {
+        test.skip(isLinux, 'app.getLoginItemSettings() is unreliable on Linux CI')
+
         await page.locator("css=.status-block.settings").click()
         await expect(page.locator("css=.overlay .settings .dialog")).toBeVisible()
         const checkbox = page.getByLabel("Launch at login")
@@ -155,6 +169,8 @@ test.describe('openAtLogin e2e', { tag: "@e2e" }, () => {
     })
 
     test('TC-E2E-5: Toggle Launch at login off resets loginItemSettings', async () => {
+        test.skip(isLinux, 'app.getLoginItemSettings() is unreliable on Linux CI')
+
         await page.locator("css=.status-block.settings").click()
         await expect(page.locator("css=.overlay .settings .dialog")).toBeVisible()
         const checkbox = page.getByLabel("Launch at login")
