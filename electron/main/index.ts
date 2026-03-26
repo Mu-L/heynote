@@ -304,12 +304,18 @@ function createTray() {
     tray = new Tray(img);
     tray.setToolTip("Heynote");
     const menu = getTrayMenu(win, showWindow)
-    // Use right-click for the context menu on all platforms so that left-click
-    // can be used to show/raise the window without opening the menu first.
-    // (setContextMenu() would intercept left-click on Windows/Linux)
-    tray.addListener("right-click", () => {
-        tray?.popUpContextMenu(menu)
-    })
+    if (isLinux) {
+        // Linux tray implementations don't reliably emit right-click events, so
+        // setContextMenu is needed for the context menu to be accessible.
+        tray.setContextMenu(menu)
+    } else {
+        // On macOS and Windows: right-click opens the menu via popUpContextMenu.
+        // (setContextMenu() would intercept left-click on Windows, so we avoid it)
+        tray.addListener("right-click", () => {
+            tray?.popUpContextMenu(menu)
+        })
+    }
+    // Left-click toggles the window on all platforms where click events are emitted
     tray.addListener("click", () => {
         if (win?.isVisible()) {
             win.hide()
