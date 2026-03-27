@@ -112,6 +112,8 @@ const schema = {
         },
     },
 
+    windowVisibleOnQuit: {type: "boolean", default: true},
+
     currency: {
         type: "object",
         properties: {

@@ -191,6 +191,7 @@ async function createWindow() {
                 isFullScreen: win.isFullScreen(),
             }, win.getNormalBounds())
             CONFIG.set("windowConfig", windowConfig)
+            CONFIG.set("windowVisibleOnQuit", win.isVisible())
         }
     })
 
@@ -370,10 +371,7 @@ function registerShowInMenu() {
 
 function registerOpenAtLogin() {
     const openAtLogin = CONFIG.get("settings.openAtLogin") as boolean
-    app.setLoginItemSettings({
-        openAtLogin,
-        ...(isMac ? { openAsHidden: true } : {}),
-    })
+    app.setLoginItemSettings({ openAtLogin })
 }
 
 function registerAlwaysOnTop() {
@@ -423,6 +421,12 @@ app.whenReady().then(createWindow).then(async () => {
     registerShowInMenu()
     registerAlwaysOnTop()
     registerOpenAtLogin()
+
+    // If the app was launched at login and the window was hidden when last quit, hide the window
+    const loginSettings = app.getLoginItemSettings()
+    if (loginSettings.wasOpenedAtLogin && !CONFIG.get("windowVisibleOnQuit")) {
+        win.hide()
+    }
 })
 
 app.on("before-quit", () => {
