@@ -45,6 +45,7 @@ export const useHeynoteStore = defineStore("heynote", {
 
         showLeftPanel: window.heynote.settings.showLeftPanel ?? false,
         leftPanelWidth: window.heynote.settings.leftPanelWidth ?? 220,
+        currentLeftPanel: "buffer-tree",
         isFullscreen: false,
         isFocused: true,
         systemLocale: navigator.language,

@@ -1,5 +1,5 @@
 <script>
-    import { mapState, mapStores } from "pinia"
+    import { mapState, mapStores, mapWritableState } from "pinia"
 
     import { TITLE_BAR_BG_LIGHT, TITLE_BAR_BG_DARK, TITLE_BAR_BG_LIGHT_BLURRED, TITLE_BAR_BG_DARK_BLURRED } from "@/src/common/constants"
     import { useHeynoteStore } from "@/src/stores/heynote-store"
@@ -7,11 +7,14 @@
 
     import MainMenuButton from "./tabs/MainMenuButton.vue"
     import BufferTree from "./buffer-tree/BufferTree.vue"
+    import LibrarySearch from "./library-search/LibrarySearch.vue"
+
 
     export default {
         components: {
             MainMenuButton,
             BufferTree,
+            LibrarySearch,
         },
 
         data() {
@@ -35,6 +38,9 @@
         computed: {
             ...mapState(useHeynoteStore, [
                 "isFocused",
+            ]),
+            ...mapWritableState(useHeynoteStore, [
+                "currentLeftPanel",
             ]),
             ...mapState(useSettingsStore, [
                 "theme",
@@ -112,7 +118,20 @@
             <MainMenuButton />
         </div>
         <div class="left-panel-content">
-            <BufferTree />
+            <BufferTree v-if="currentLeftPanel == 'buffer-tree'" />
+            <LibrarySearch v-if="currentLeftPanel == 'search'" />
+        </div>
+        <div class="left-panel-tab-buttons">
+            <button
+                @click="() => currentLeftPanel='buffer-tree'"
+                :class="{selected:currentLeftPanel=='buffer-tree'}"
+                tabindex="-1"
+            >Buffers</button>
+            <button
+                @click="() => currentLeftPanel='search'"
+                :class="{selected:currentLeftPanel=='search'}"
+                tabindex="-1"
+            >Search</button>
         </div>
         <div
             :class="resizerClass"
@@ -139,11 +158,44 @@
             height: var(--tab-bar-height)
             flex-shrink: 0
             app-region: drag
+            display: flex
 
         .left-panel-content
             flex-grow: 1
             min-height: 0
             //border-right: 1px solid var(--tab-bar-border-bottom-color)
+
+        .left-panel-tab-buttons
+            app-region: none
+            padding: 0px
+            display: flex
+            align-items: center
+            //justify-content: center
+            width: 100%
+            border-top: 1px solid var(--tab-bar-border-bottom-color)
+            button
+                background: none
+                border: none
+                //border-radius: 3px 3px 0 0
+                padding: 5px 8px
+                margin-right: 0px
+                color: rgba(0,0,0, 0.6)
+                cursor: pointer
+                font-size: 12px
+                position: relative
+                top: -1px
+                +dark-mode
+                    color: rgba(255,255,255, 0.6)
+                &:last-child  
+                    margin-right: 0
+                &:hover
+                    background: rgba(0,0,0, 0.08)
+                    +dark-mode
+                        background: rgba(255,255,255, 0.08)
+                &.selected
+                    border-top: 1px solid rgba(0,0,0, 0.7)
+                    +dark-mode
+                        border-top: 1px solid rgba(255,255,255, 0.8)
         
         .resizer
             position: absolute
