@@ -64,6 +64,32 @@ test.describe("sidebar buffer tree", () => {
         await expect(page.locator(".buffer-tree .buffer", { hasText: "Nested Note" })).toHaveCount(0)
     })
 
+    test("shows indentation guide lines when the sidebar is hovered", async ({ page }) => {
+        const nestedBufferGuide = page
+            .locator(".buffer-tree .buffer", { hasText: "Nested Note" })
+            .locator(".indent-guide")
+            .first()
+
+        await expect(nestedBufferGuide).toHaveCount(1)
+
+        await page.mouse.move(500, 200)
+        await expect.poll(async () => {
+            return await nestedBufferGuide.evaluate((element) => window.getComputedStyle(element).opacity)
+        }).toBe("0")
+
+        await page.locator(".left-panel").hover()
+        await expect.poll(async () => {
+            return await nestedBufferGuide.evaluate((element) => window.getComputedStyle(element).opacity)
+        }).toBe("1")
+
+        await page.evaluate(() => window._heynote_buffer_tree.onCreateFolderRequested(null, "folder-a"))
+        const newFolderGuide = page.locator(".buffer-tree .show-indent-guides .indent-guide").first()
+        await expect(newFolderGuide).toHaveCount(1)
+        await expect.poll(async () => {
+            return await newFolderGuide.evaluate((element) => window.getComputedStyle(element).opacity)
+        }).toBe("1")
+    })
+
     test("opens selected buffer from tree", async ({ page }) => {
         await page.locator(".buffer-tree .folder", { hasText: "folder-b" }).click()
         await page.locator(".buffer-tree .buffer", { hasText: "Deep Note" }).click()

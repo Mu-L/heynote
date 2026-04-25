@@ -540,6 +540,10 @@
                     block: "nearest",
                 })
             },
+
+            indentGuides(level) {
+                return Array.from({ length: Math.max(0, level) }, (_, index) => index)
+            },
         },
 
     }
@@ -556,7 +560,8 @@
             <NewFolderItem
                 v-if="item.type === 'new-folder'"
                 :parentPath="item.path"
-                :level="item.level + 1"
+                :level="item.level"
+                :showIndentGuides="true"
                 @create-folder="onCreateFolder"
                 @cancel="onCancelCreateFolder"
             />
@@ -580,6 +585,12 @@
                 @dragover="item.type === 'folder' ? onFolderDragOver(item.path, $event) : item.type === 'buffer' ? onBufferDragOver(item.path, $event) : null"
                 @drop="item.type === 'folder' ? onFolderDrop(item.path, $event) : item.type === 'buffer' ? onBufferDrop(item.path, $event) : null"
             >
+                <span
+                    v-for="guideLevel in indentGuides(item.level)"
+                    :key="guideLevel"
+                    class="indent-guide"
+                    :style="{ '--guide-level': guideLevel }"
+                ></span>
                 <span class="name" :title="item.name">{{ item.name }}</span>
             </div>
         </template>
@@ -607,8 +618,9 @@
         padding: 2px 10px
         scroll-margin-top: 36px
         scroll-margin-bottom: 36px
-        padding-left: calc(22px + var(--indent-level) * 16px)
+        padding-left: calc(24px + var(--indent-level) * 20px)
         //border-radius: 4px
+        position: relative
         white-space: nowrap
         overflow: hidden
         text-overflow: ellipsis
@@ -617,21 +629,22 @@
         +dark-mode
             color: rgba(255,255,255, 0.6)
         &.buffer
+            padding-left: calc(13px + var(--indent-level) * 20px)
             &:hover
                 background-color: rgba(0,0,0, 0.06)
                 +dark-mode
-                    background: rgba(255,255,255, 0.08)
+                    background-color: rgba(255,255,255, 0.08)
             &.active
-                background: #d4ded9
+                background-color: #d4ded9
                 +dark-mode
-                    background: #244233
+                    background-color: #244233
             &.scratch
                 font-style: italic
         &.folder
             background-image: url('@/assets/icons/caret-right.svg')
             background-size: 12px
             background-repeat: no-repeat
-            background-position-x: calc(7px + var(--indent-level) * 16px)
+            background-position-x: calc(9px + var(--indent-level) * 20px)
             background-position-y: 6px
             +dark-mode
                 background-image: url('@/assets/icons/caret-right-white.svg')
@@ -648,6 +661,28 @@
                 +dark-mode
                     background-color: rgba(255,255,255, 0.16)
 
+    .indent-guide
+        position: absolute
+        top: 0
+        bottom: 0
+        left: calc(14px + var(--guide-level) * 20px)
+        width: 1px
+        opacity: 0
+        pointer-events: none
+        background: rgba(0,0,0, 0.14)
+        transition: opacity 80ms ease
+        +dark-mode
+            background: rgba(255,255,255, 0.18)
+
+    .buffer-tree:hover .indent-guide,
+    :global(.left-panel:hover) .buffer-tree .indent-guide
+        opacity: 1
+
+    .buffer-tree:hover :deep(.show-indent-guides .indent-guide),
+    :global(.left-panel:hover) .buffer-tree :deep(.show-indent-guides .indent-guide)
+        opacity: 1
+
     .name
         display: block
+        position: relative
 </style>
