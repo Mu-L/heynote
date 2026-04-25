@@ -126,12 +126,12 @@
                 @click="() => currentLeftPanel='buffer-tree'"
                 :class="{selected:currentLeftPanel=='buffer-tree'}"
                 tabindex="-1"
-            >Buffers</button>
+            ><i class="icon buffers"></i>Buffers</button>
             <button
                 @click="() => currentLeftPanel='search'"
                 :class="{selected:currentLeftPanel=='search'}"
                 tabindex="-1"
-            >Search</button>
+            ><i class="icon search"></i>Search</button>
         </div>
         <div
             :class="resizerClass"
@@ -176,6 +176,7 @@
             +dark-mode
                 background: #282828
             button
+                width: 50%
                 background: none
                 border: none
                 //border-radius: 3px 3px 0 0
@@ -192,13 +193,33 @@
                 &:last-child  
                     margin-right: 0
                 &:hover
-                    background: rgba(0,0,0, 0.08)
+                    background-color: rgba(0,0,0, 0.08)
                     +dark-mode
-                        background: rgba(255,255,255, 0.08)
+                        background-color: rgba(255,255,255, 0.08)
                 &.selected
                     border-top: 1px solid rgba(0,0,0, 0.7)
                     +dark-mode
                         border-top: 1px solid rgba(255,255,255, 0.8)
+                .icon
+                    display: inline-block
+                    width: 12px
+                    height: 12px
+                    background-size: 100%
+                    background-repeat: no-repeat
+                    margin-right: 5px
+                    position: relative
+                    top: 1px
+                    &.buffers
+                        background-image: url('@/assets/icons/files-light.svg')
+                        +dark-mode
+                            background-image: url('@/assets/icons/files-dark.svg')
+                    &.search
+                        background-image: url('@/assets/icons/search-light.svg')
+                        width: 13px
+                        height: 13px
+                        top: 2px
+                        +dark-mode
+                            background-image: url('@/assets/icons/search-dark.svg')
         
         .resizer
             position: absolute
