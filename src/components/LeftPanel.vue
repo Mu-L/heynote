@@ -173,17 +173,20 @@
             //justify-content: center
             width: 100%
             border-top: 1px solid var(--tab-bar-border-bottom-color)
+            +dark-mode
+                background: #282828
             button
                 background: none
                 border: none
                 //border-radius: 3px 3px 0 0
-                padding: 5px 8px
+                padding: 5px 8px 6px 8px
                 margin-right: 0px
                 color: rgba(0,0,0, 0.6)
                 cursor: pointer
                 font-size: 12px
                 position: relative
                 top: -1px
+                border-top: 1px solid transparent
                 +dark-mode
                     color: rgba(255,255,255, 0.6)
                 &:last-child  
