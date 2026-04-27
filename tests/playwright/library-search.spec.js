@@ -1,0 +1,101 @@
+import { expect, test } from "@playwright/test"
+import { HeynotePage } from "./test-utils.js"
+
+function createBufferContent(name, content = "") {
+    return JSON.stringify({
+        formatVersion: "2.0.0",
+        name,
+    }) + `\n∞∞∞text-a;created=2026-01-01T00:00:00.000Z\n${content}`
+}
+
+function installLibraryState() {
+    const settings = {
+        showLeftPanel: true,
+        leftPanelWidth: 260,
+    }
+    const notes = {
+        "scratch.txt": createBufferContent("Scratch", [
+            "first needle match",
+            "second needle match",
+            "short non-match",
+        ].join("\n")),
+        "folder-a/project.txt": createBufferContent("Project Note", [
+            "emoji context 🙂🙂🙂 and a long prefix before the important needle match",
+            "another non-match",
+        ].join("\n")),
+        "folder-a/other.txt": createBufferContent("Other Note", "nothing to find here"),
+    }
+    return { settings, notes }
+}
+
+test.describe("library search", () => {
+    test.beforeEach(async ({ page }) => {
+        const state = installLibraryState()
+        await page.addInitScript((seed) => {
+            localStorage.clear()
+            localStorage.setItem("settings", JSON.stringify(seed.settings))
+            for (const [path, content] of Object.entries(seed.notes)) {
+                localStorage.setItem(`heynote-library__${path}`, content)
+            }
+        }, state)
+
+        const heynotePage = new HeynotePage(page)
+        await heynotePage.goto()
+        await page.getByRole("button", { name: "Search" }).click()
+        await expect(page.locator(".search-container")).toBeVisible()
+    })
+
+    test("shows grouped results, counts, highlighting, and preview context", async ({ page }) => {
+        await page.locator(".search-container input.search-query").fill("needle")
+
+        await expect(page.locator(".result-summary")).toContainText("3 results in 2 buffers")
+        await expect(page.locator(".result-container")).toHaveCount(2)
+        await expect(page.locator(".result-container .buffer", { hasText: "Scratch" })).toBeVisible()
+        await expect(page.locator(".result-container .buffer", { hasText: "Project Note" })).toBeVisible()
+
+        await expect(page.locator(".result-container .match")).toHaveCount(3)
+        await expect(page.locator(".result-container .match strong", { hasText: "needle" })).toHaveCount(3)
+
+        const longMatchText = page.locator(".result-container .match", { hasText: "important" })
+        await expect(longMatchText).toContainText("...g prefix before the important needle match")
+        await expect(longMatchText.locator("strong")).toHaveText("needle")
+    })
+
+    test("collapses and expands matches for a buffer", async ({ page }) => {
+        await page.locator(".search-container input.search-query").fill("needle")
+        const scratchResult = page.locator(".result-container", { hasText: "Scratch" })
+
+        await expect(scratchResult.locator(".match")).toHaveCount(2)
+        await scratchResult.locator(".buffer").click()
+        await expect(scratchResult.locator(".match")).toHaveCount(0)
+        await scratchResult.locator(".buffer").click()
+        await expect(scratchResult.locator(".match")).toHaveCount(2)
+    })
+
+    test("hides result summary and rows when the query is cleared", async ({ page }) => {
+        const input = page.locator(".search-container input.search-query")
+        await input.fill("needle")
+        await expect(page.locator(".result-summary")).toBeVisible()
+
+        await input.fill("")
+        await expect(page.locator(".result-summary")).toHaveCount(0)
+        await expect(page.locator(".result-container")).toHaveCount(0)
+    })
+
+    test("shows indentation guides when the sidebar is hovered", async ({ page }) => {
+        await page.locator(".search-container input.search-query").fill("needle")
+
+        const guide = page.locator(".result-container .match .indent-guide").first()
+        await expect(guide).toHaveCount(1)
+
+        await page.mouse.move(500, 200)
+        await expect.poll(async () => {
+            return await guide.evaluate((element) => window.getComputedStyle(element).opacity)
+        }).toBe("0")
+
+        await page.locator(".left-panel").hover()
+        await expect.poll(async () => {
+            return await guide.evaluate((element) => window.getComputedStyle(element).opacity)
+        }).toBe("1")
+    })
+})
