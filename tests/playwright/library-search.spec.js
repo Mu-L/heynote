@@ -82,6 +82,15 @@ test.describe("library search", () => {
         await expect(page.locator(".result-container")).toHaveCount(0)
     })
 
+    test("focuses the editor when Escape is pressed in the search input", async ({ page }) => {
+        const input = page.locator(".search-container input.search-query")
+        await input.fill("needle")
+        await expect(input).toBeFocused()
+
+        await input.press("Escape")
+        await expect(page.locator(".cm-editor")).toHaveClass(/cm-focused/)
+    })
+
     test("shows indentation guides when the sidebar is hovered", async ({ page }) => {
         await page.locator(".search-container input.search-query").fill("needle")
 

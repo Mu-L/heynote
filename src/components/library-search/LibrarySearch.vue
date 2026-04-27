@@ -2,6 +2,7 @@
     import { mapState, mapStores, mapWritableState } from "pinia"
 
     import { useSearchStore } from '@/src/stores/search-store';
+    import { useHeynoteStore } from "@/src/stores/heynote-store";
     import InputToggle from '@/src/editor/search/InputToggle.vue';
     import SearchResult from "./SearchResult.vue";
 
@@ -40,7 +41,7 @@
         },
 
         computed: {
-            ...mapStores(useSearchStore),
+            ...mapStores(useSearchStore, useHeynoteStore),
             ...mapState(useSearchStore, [
                 "results",
             ]),
@@ -68,8 +69,8 @@
                 this.searchStore.search(this.query)
             },
 
-            cancelSearch() {
-                this.searchStore.cancelActiveSearch()
+            focusEditor() {
+                this.heynoteStore.focusEditor()
             },
         },
     }
@@ -86,7 +87,7 @@
                     placeholder="Find…"
                     class="search-query"
                     main-field
-                    @keydown.esc.prevent.stop="cancelSearch"
+                    @keydown.esc.prevent.stop="focusEditor"
                 />
                 <div class="input-buttons">
                     <InputToggle 
