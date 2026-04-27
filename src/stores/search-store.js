@@ -21,7 +21,7 @@ export const useSearchStore = defineStore("search", {
                     ],
                 },
                 {
-                    buffer: "other.txt",
+                    buffer: "subdir/another.txt",
                     matches: [
                         {line: "tesssst: " + query},
                     ],

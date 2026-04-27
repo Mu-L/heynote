@@ -11,7 +11,12 @@
 
             bufferName() {
                 const buffer = this.heynoteStore.buffers[this.result.buffer]
-                return buffer ? buffer.name : this.result.buffer
+                return buffer?.name ? buffer.name : this.result.buffer.split(window.heynote.buffer.pathSeparator).at(-1)
+            },
+
+            bufferDir() {
+                const parts = this.result.buffer.split(window.heynote.buffer.pathSeparator)
+                return parts.at(-2)
             },
         }
     }
@@ -19,7 +24,10 @@
 
 <template>
     <div class="result-container">
-        <div class="buffer">{{ bufferName }}</div>
+        <div class="buffer">
+            {{ bufferName }}
+            <span class="dir">{{ bufferDir }}</span>
+        </div>
         <div class="matches">
             <div class="match" v-for="match in result.matches">
                 {{ match.line }}
@@ -38,6 +46,9 @@
             padding: 5px 10px
             &:hover
                 background: rgba(255,255,255, 0.1)
+            .dir
+                margin-left: 10px
+                font-size: 0.8em
         .matches 
             .match
                 cursor: pointer
