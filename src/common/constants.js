@@ -17,6 +17,12 @@ export const LOAD_TABS_STATE = "load-tabs-state"
 export const CONTEXT_MENU_CLOSED = "context-menu-closed"
 export const GET_SYSTEM_LOCALE = "getSystemLocale"
 
+export const LIBRARY_SEARCH_START = "library-search:start"
+export const LIBRARY_SEARCH_CANCEL = "library-search:cancel"
+export const LIBRARY_SEARCH_MATCH = "library-search:match"
+export const LIBRARY_SEARCH_DONE = "library-search:done"
+export const LIBRARY_SEARCH_ERROR = "library-search:error"
+
 export const UPDATE_AVAILABLE_EVENT = "update-available"
 export const UPDATE_NOT_AVAILABLE_EVENT = "update-not-available"
 export const UPDATE_DOWNLOADED = "update-downloaded"

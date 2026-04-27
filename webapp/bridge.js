@@ -1,4 +1,14 @@
-import { SETTINGS_CHANGE_EVENT, OPEN_SETTINGS_EVENT, SAVE_TABS_STATE, LOAD_TABS_STATE, WINDOW_CLOSE_EVENT } from "@/src/common/constants";
+import {
+    SETTINGS_CHANGE_EVENT,
+    OPEN_SETTINGS_EVENT,
+    SAVE_TABS_STATE,
+    LOAD_TABS_STATE,
+    WINDOW_CLOSE_EVENT,
+    LIBRARY_SEARCH_CANCEL,
+    LIBRARY_SEARCH_DONE,
+    LIBRARY_SEARCH_MATCH,
+    LIBRARY_SEARCH_START,
+} from "@/src/common/constants";
 import { NoteFormat } from "../src/common/note-format";
 
 const NOTE_KEY_PREFIX = "heynote-library__"
@@ -142,6 +152,10 @@ function getNoteMetadata(content) {
     } catch (e) {
         return {}
     }
+}
+
+function escapeRegExp(text) {
+    return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
 }
 
 // Migrate single buffer (Heynote pre 2.0) in localStorage to notes library
@@ -302,6 +316,11 @@ const Heynote = {
                         return JSON.parse(tabsState)
                     }
                     return undefined
+                case LIBRARY_SEARCH_START:
+                    searchLocalLibrary(args[0])
+                    return { ok: true }
+                case LIBRARY_SEARCH_CANCEL:
+                    return { ok: true }
             }
         }
     },
@@ -360,6 +379,50 @@ const Heynote = {
     async getSystemLocale() {
         return navigator.language
     },
+}
+
+function searchLocalLibrary(options) {
+    const query = options?.query || ""
+    if (query.length <= 2) {
+        ipcRenderer.send(LIBRARY_SEARCH_DONE, { searchId: options?.searchId })
+        return
+    }
+    const flags = options.caseSensitive ? "g" : "gi"
+    const pattern = options.wholeWord
+        ? new RegExp(`\\b${escapeRegExp(query)}\\b`, flags)
+        : new RegExp(escapeRegExp(query), flags)
+    for (let [key, content] of Object.entries(localStorage)) {
+        if (!key.startsWith(NOTE_KEY_PREFIX)) {
+            continue
+        }
+        const buffer = key.slice(NOTE_KEY_PREFIX.length)
+        const lines = content.split(/\r?\n/)
+        lines.forEach((line, index) => {
+            const submatches = []
+            pattern.lastIndex = 0
+            let match = pattern.exec(line)
+            while (match) {
+                submatches.push({
+                    start: match.index,
+                    end: match.index + match[0].length,
+                    text: match[0],
+                })
+                match = pattern.exec(line)
+            }
+            if (submatches.length === 0) {
+                return
+            }
+            ipcRenderer.send(LIBRARY_SEARCH_MATCH, {
+                searchId: options.searchId,
+                type: "match",
+                buffer,
+                line,
+                lineNumber: index + 1,
+                submatches,
+            })
+        })
+    }
+    ipcRenderer.send(LIBRARY_SEARCH_DONE, { searchId: options.searchId })
 }
 
 window.addEventListener("beforeunload", () => ipcRenderer.send(WINDOW_CLOSE_EVENT))
