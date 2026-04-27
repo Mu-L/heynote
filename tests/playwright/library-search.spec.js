@@ -82,13 +82,15 @@ test.describe("library search", () => {
         await expect(page.locator(".result-container")).toHaveCount(0)
     })
 
-    test("focuses the editor when Escape is pressed in the search input", async ({ page }) => {
+    test("focuses the editor and switches to the Buffers tab when Escape is pressed in the search input", async ({ page }) => {
         const input = page.locator(".search-container input.search-query")
         await input.fill("needle")
         await expect(input).toBeFocused()
 
         await input.press("Escape")
         await expect(page.locator(".cm-editor")).toHaveClass(/cm-focused/)
+        await expect(page.locator(".buffer-tree")).toBeVisible()
+        await expect(page.getByRole("button", { name: "Buffers" })).toHaveClass(/selected/)
     })
 
     test("shows indentation guides when the sidebar is hovered", async ({ page }) => {

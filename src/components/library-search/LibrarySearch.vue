@@ -70,6 +70,7 @@
             },
 
             focusEditor() {
+                this.heynoteStore.currentLeftPanel = "buffer-tree"
                 this.heynoteStore.focusEditor()
             },
         },
