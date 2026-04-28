@@ -55,6 +55,7 @@
                 indentType: this.initialSettings.indentType || "space",
                 tabSize: this.initialSettings.tabSize || 4,
                 autoUpdate: this.initialSettings.autoUpdate,
+                autoInstallUpdates: this.initialSettings.autoInstallUpdates !== false,
                 bufferPath: this.initialSettings.bufferPath,
                 fontFamily: this.initialSettings.fontFamily || defaultFontFamily,
                 fontSize: this.initialSettings.fontSize || defaultFontSize,
@@ -136,6 +137,7 @@
                     showInMenu: this.showInMenu || !this.showInDock,
                     alwaysOnTop: this.alwaysOnTop,
                     autoUpdate: this.autoUpdate,
+                    autoInstallUpdates: this.autoInstallUpdates,
                     bracketClosing: this.bracketClosing,
                     indentType: this.indentType,
                     tabSize: this.tabSize,
@@ -505,6 +507,14 @@
                                         @change="updateSettings"
                                     />
                                     Periodically check for new updates
+                                </label>
+                                <label>
+                                    <input 
+                                        type="checkbox" 
+                                        v-model="autoInstallUpdates" 
+                                        @change="updateSettings"
+                                    />
+                                    Automatically install new updates
                                 </label>
                             </div>
                         </div>
