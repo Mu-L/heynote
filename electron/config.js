@@ -48,7 +48,7 @@ const schema = {
             "showFoldGutter": {type: "boolean", default:true},
             "showTabs": {type: "boolean", default: true},
             "showTabsInFullscreen": {type: "boolean", default: true},
-            "showLeftPanel": {type: "boolean", default: false},
+            "showLeftPanel": {type: "boolean", default: true},
             "leftPanelWidth": {type: "integer", default: 250},
             "bufferTreeOpenFolders": {
                 type: "array",
@@ -134,7 +134,7 @@ const defaults = {
         keyBindings: [],
         showLineNumberGutter: true,
         showFoldGutter: true,
-        showLeftPanel: false,
+        showLeftPanel: true,
         leftPanelWidth: 250,
         bufferTreeOpenFolders: [],
         autoUpdate: true,

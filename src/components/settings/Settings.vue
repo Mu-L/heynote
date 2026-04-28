@@ -44,7 +44,7 @@
                 showWhitespace: this.initialSettings.showWhitespace,
                 showTabs: this.initialSettings.showTabs,
                 showTabsInFullscreen: this.initialSettings.showTabsInFullscreen,
-                showLeftPanel: this.initialSettings.showLeftPanel ?? false,
+                showLeftPanel: this.initialSettings.showLeftPanel ?? true,
                 allowBetaVersions: this.initialSettings.allowBetaVersions,
                 enableGlobalHotkey: this.initialSettings.enableGlobalHotkey,
                 globalHotkey: this.initialSettings.globalHotkey,
