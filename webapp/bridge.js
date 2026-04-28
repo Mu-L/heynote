@@ -9,6 +9,7 @@ import {
     LIBRARY_SEARCH_MATCH,
     LIBRARY_SEARCH_START,
 } from "@/src/common/constants";
+import { normalizeLibrarySearchMatch } from "@/src/common/library-search-match";
 import { NoteFormat } from "../src/common/note-format";
 
 const NOTE_KEY_PREFIX = "heynote-library__"
@@ -412,13 +413,19 @@ function searchLocalLibrary(options) {
             if (submatches.length === 0) {
                 return
             }
+            const normalizedMatch = normalizeLibrarySearchMatch({
+                line,
+                lineNumber: index + 1,
+                submatches,
+            })
+            if (!normalizedMatch) {
+                return
+            }
             ipcRenderer.send(LIBRARY_SEARCH_MATCH, {
                 searchId: options.searchId,
                 type: "match",
                 buffer,
-                line,
-                lineNumber: index + 1,
-                submatches,
+                ...normalizedMatch,
             })
         })
     }

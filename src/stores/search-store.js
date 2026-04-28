@@ -97,8 +97,10 @@ export const useSearchStore = defineStore("search", {
             }
             this.results[resultIndex].matches.push({
                 line: match.line,
+                displayLine: match.displayLine,
                 lineNumber: match.lineNumber,
                 submatches: match.submatches || [],
+                displaySubmatches: match.displaySubmatches || [],
             })
         },
 

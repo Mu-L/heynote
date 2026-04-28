@@ -94,11 +94,12 @@
             },
 
             highlightedParts(match) {
-                const submatches = this.normalizedSubmatches(match)
+                const line = match.displayLine || match.line
+                const submatches = this.normalizedSubmatchList(match.displaySubmatches || match.submatches)
                 if (submatches.length === 0) {
-                    return [{ text: match.line, highlight: false }]
+                    return [{ text: line, highlight: false }]
                 }
-                const preview = this.matchPreview(match.line, submatches[0].start)
+                const preview = this.matchPreview(line, submatches[0].start)
                 const visibleLine = preview.line
                 const parts = []
                 let cursor = 0
@@ -121,7 +122,11 @@
             },
 
             normalizedSubmatches(match) {
-                return (match.submatches || [])
+                return this.normalizedSubmatchList(match.submatches)
+            },
+
+            normalizedSubmatchList(submatches) {
+                return (submatches || [])
                     .filter((submatch) => (
                         Number.isInteger(submatch.start) &&
                         Number.isInteger(submatch.end) &&

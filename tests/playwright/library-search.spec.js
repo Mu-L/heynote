@@ -15,7 +15,7 @@ function installLibraryState() {
     }
     const notes = {
         "scratch.txt": createBufferContent("Scratch", [
-            "first needle match",
+            "first needle match <∞img;id=search-test;file=https://example.com/needle.png;w=10;h=10∞>",
             "second needle match",
             "short non-match",
         ].join("\n")),
@@ -55,10 +55,21 @@ test.describe("library search", () => {
 
         await expect(page.locator(".result-container .match")).toHaveCount(3)
         await expect(page.locator(".result-container .match strong", { hasText: "needle" })).toHaveCount(3)
+        await expect(page.locator(".result-container .match", { hasText: "needle.png" })).toHaveCount(0)
 
         const longMatchText = page.locator(".result-container .match", { hasText: "important" })
         await expect(longMatchText).toContainText("...g prefix before the important needle match")
         await expect(longMatchText.locator("strong")).toHaveText("needle")
+    })
+
+    test("does not match Heynote syntax", async ({ page }) => {
+        const input = page.locator(".search-container input.search-query")
+
+        for (const query of ["Scratch", "created", "text-a", "needle.png"]) {
+            await input.fill(query)
+            await expect(page.locator(".result-container")).toHaveCount(0)
+            await expect(page.locator(".result-summary")).toContainText("0 results in 0 buffers")
+        }
     })
 
     test("collapses and expands matches for a buffer", async ({ page }) => {

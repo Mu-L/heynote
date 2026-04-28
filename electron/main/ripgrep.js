@@ -3,7 +3,8 @@ import { spawn } from "node:child_process"
 import { once } from "node:events"
 import readline from "node:readline"
 
-import { IMAGE_REGEX_RIPGREP, IMAGE_REGEX } from "@/src/common/constants.js"
+import { IMAGE_REGEX_RIPGREP } from "@/src/common/constants.js"
+import { normalizeLibrarySearchMatch } from "@/src/common/library-search-match.js"
 import { parseImagesFromString } from "@/src/editor/image/image-parsing.js"
 
 
@@ -134,9 +135,7 @@ export function startLibrarySearch(library, options, onEvent) {
         }
         const matchData = data.data
         const matchedLine = (matchData.lines?.text || "").replace(/\r?\n$/, "")
-        emit({
-            type: "match",
-            buffer: normalizeRipgrepPath(matchData.path?.text),
+        const normalizedMatch = normalizeLibrarySearchMatch({
             line: matchedLine,
             lineNumber: matchData.line_number,
             submatches: (matchData.submatches || []).map((submatch) => ({
@@ -144,6 +143,14 @@ export function startLibrarySearch(library, options, onEvent) {
                 end: utf8ByteOffsetToStringIndex(matchedLine, submatch.end),
                 text: submatch.match?.text || "",
             })),
+        })
+        if (!normalizedMatch) {
+            return
+        }
+        emit({
+            type: "match",
+            buffer: normalizeRipgrepPath(matchData.path?.text),
+            ...normalizedMatch,
         })
     })
     rg.stderr.on("data", (data) => {

@@ -123,4 +123,44 @@ describe("startLibrarySearch", () => {
         expect(line.slice(submatch.start, submatch.end)).toBe("foo")
         expect(submatch.start).toBe(line.lastIndexOf("foo"))
     })
+
+    it("ignores Heynote metadata, block delimiters, and tags", async () => {
+        const tag = "<∞img;id=1;file=https://example.com/needle.png;w=10;h=10∞>"
+        const content = [
+            JSON.stringify({ formatVersion: "2.0.0", name: "Needle Metadata" }),
+            "∞∞∞text-a;created=2026-01-01T00:00:00.000Z",
+            `visible needle ${tag} tail`,
+            "∞∞∞markdown",
+            "after delimiter",
+        ].join("\n")
+        await fs.promises.writeFile(path.join(tmpDir, "scratch.txt"), content, "utf8")
+
+        const needleEvents = await runLibrarySearch(tmpDir, {
+            searchId: 1001,
+            query: "needle",
+            caseSensitive: false,
+            wholeWord: false,
+        })
+        const needleMatches = needleEvents.filter((event) => event.type === "match")
+
+        expect(needleMatches).toHaveLength(1)
+        expect(needleMatches[0]).toMatchObject({
+            buffer: "scratch.txt",
+            line: `visible needle ${tag} tail`,
+            displayLine: "visible needle  tail",
+            lineNumber: 3,
+            submatches: [{ start: 8, end: 14, text: "needle" }],
+            displaySubmatches: [{ start: 8, end: 14, text: "needle" }],
+        })
+
+        for (const query of ["metadata", "created", "markdown", "needle.png"]) {
+            const events = await runLibrarySearch(tmpDir, {
+                searchId: 1002,
+                query,
+                caseSensitive: false,
+                wholeWord: false,
+            })
+            expect(events.filter((event) => event.type === "match")).toHaveLength(0)
+        }
+    })
 })
