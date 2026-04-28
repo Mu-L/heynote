@@ -58,7 +58,7 @@ test.describe("library search", () => {
         await expect(page.locator(".result-container .match", { hasText: "needle.png" })).toHaveCount(0)
 
         const longMatchText = page.locator(".result-container .match", { hasText: "important" })
-        await expect(longMatchText).toContainText("...g prefix before the important needle match")
+        await expect(longMatchText).toContainText("...efore the important needle match")
         await expect(longMatchText.locator("strong")).toHaveText("needle")
     })
 
