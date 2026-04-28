@@ -55,6 +55,7 @@
                 backgroundNewFolderPosition: "top",
                 draggingBufferPath: null,
                 dragOverFolderPath: null,
+                selectedItemKey: null,
             }
         },
 
@@ -65,6 +66,9 @@
             ])
             this.syncFolderOpenState()
             this.$nextTick(() => this.scrollActiveBufferIntoView())
+            if (this.consumeFocusBufferTreeOnMount()) {
+                this.$nextTick(() => this.focusTree())
+            }
             window._heynote_buffer_tree = this
             window.heynote.mainProcess.on("bufferTree:createFolder", this.onCreateFolderRequested)
         },
@@ -87,7 +91,11 @@
             currentBufferPath() {
                 this.openCurrentPathFolders()
                 this.persistFolderOpenState()
+                this.selectCurrentBuffer()
                 this.$nextTick(() => this.scrollActiveBufferIntoView())
+            },
+            bufferTreeFocusRequestId() {
+                this.$nextTick(() => this.focusTree())
             },
         },
 
@@ -95,6 +103,7 @@
             ...mapState(useHeynoteStore, [
                 "buffers",
                 "currentBufferPath",
+                "bufferTreeFocusRequestId",
             ]),
 
             visibleItems() {
@@ -176,6 +185,10 @@
                 walk(this.buildTree(), 0, "")
                 return rows
             },
+
+            selectableItems() {
+                return this.visibleItems.filter((item) => this.isSelectableItem(item))
+            },
         },
 
         methods: {
@@ -185,11 +198,105 @@
                 "createDirectory",
                 "moveBuffer",
                 "focusEditor",
+                "consumeFocusBufferTreeOnMount",
             ]),
 
             async refreshDirectoryList() {
                 const directories = await window.heynote.buffer.getDirectoryList()
                 this.directoryPaths = directories.filter((path) => !hasHiddenDirectorySegment(path))
+            },
+
+            isSelectableItem(item) {
+                return item?.type === "folder" || item?.type === "buffer"
+            },
+
+            itemKey(item) {
+                return item ? `${item.type}:${item.path}` : null
+            },
+
+            findSelectableItemByKey(key) {
+                return this.selectableItems.find((item) => this.itemKey(item) === key)
+            },
+
+            getSelectedItemIndex() {
+                this.ensureSelectedItem()
+                return this.selectableItems.findIndex((item) => this.itemKey(item) === this.selectedItemKey)
+            },
+
+            ensureSelectedItem() {
+                if (this.selectableItems.length === 0) {
+                    this.selectedItemKey = null
+                    return
+                }
+                if (this.findSelectableItemByKey(this.selectedItemKey)) {
+                    return
+                }
+                const activeBuffer = this.selectableItems.find((item) => item.type === "buffer" && item.path === this.currentBufferPath)
+                this.selectedItemKey = this.itemKey(activeBuffer || this.selectableItems[0])
+            },
+
+            selectCurrentBuffer() {
+                const activeBuffer = this.selectableItems.find((item) => item.type === "buffer" && item.path === this.currentBufferPath)
+                if (activeBuffer) {
+                    this.selectedItemKey = this.itemKey(activeBuffer)
+                }
+            },
+
+            setSelectedItem(item) {
+                this.selectedItemKey = this.itemKey(item)
+                this.$nextTick(() => this.scrollSelectedItemIntoView())
+            },
+
+            onTreeFocus() {
+                this.ensureSelectedItem()
+            },
+
+            focusTree() {
+                this.ensureSelectedItem()
+                this.$refs.container?.focus({ preventScroll: true })
+                this.$nextTick(() => this.scrollSelectedItemIntoView())
+            },
+
+            onTreeKeyDown(event) {
+                if (event.key === "Escape") {
+                    event.preventDefault()
+                    this.focusEditor()
+                    return
+                }
+                if (!["ArrowDown", "ArrowUp", "ArrowRight", "ArrowLeft", "Enter"].includes(event.key)) {
+                    return
+                }
+                this.ensureSelectedItem()
+                const selectedIndex = this.getSelectedItemIndex()
+                const selectedItem = this.selectableItems[selectedIndex]
+                if (!selectedItem) {
+                    return
+                }
+
+                if (event.key === "ArrowDown") {
+                    event.preventDefault()
+                    this.setSelectedItem(this.selectableItems[Math.min(selectedIndex + 1, this.selectableItems.length - 1)])
+                } else if (event.key === "ArrowUp") {
+                    event.preventDefault()
+                    this.setSelectedItem(this.selectableItems[Math.max(selectedIndex - 1, 0)])
+                } else if (event.key === "ArrowRight") {
+                    event.preventDefault()
+                    if (selectedItem.type === "folder" && !selectedItem.open) {
+                        this.folderOpenState[selectedItem.path] = true
+                        this.persistFolderOpenState()
+                    }
+                } else if (event.key === "ArrowLeft") {
+                    event.preventDefault()
+                    if (selectedItem.type === "folder" && selectedItem.open) {
+                        this.folderOpenState[selectedItem.path] = false
+                        this.persistFolderOpenState()
+                    }
+                } else if (event.key === "Enter") {
+                    event.preventDefault()
+                    if (selectedItem.type === "buffer") {
+                        this.openBuffer(selectedItem.path)
+                    }
+                }
             },
 
             buildTree() {
@@ -286,6 +393,16 @@
             onFolderClick(path) {
                 this.folderOpenState[path] = !this.folderOpenState[path]
                 this.persistFolderOpenState()
+            },
+
+            onItemClick(item) {
+                this.setSelectedItem(item)
+                if (item.type === "folder") {
+                    this.onFolderClick(item.path)
+                } else {
+                    this.openBuffer(item.path)
+                    this.focusTree()
+                }
             },
 
             persistFolderOpenState() {
@@ -540,6 +657,21 @@
                     block: "nearest",
                 })
             },
+
+            scrollSelectedItemIntoView() {
+                const selectedItem = this.$el?.querySelector(".item.selected")
+                if (!selectedItem) {
+                    return
+                }
+                selectedItem.scrollIntoView({
+                    behavior: "auto",
+                    block: "nearest",
+                })
+            },
+
+            indentGuides(level) {
+                return Array.from({ length: Math.max(0, level) }, (_, index) => index)
+            },
         },
 
     }
@@ -548,7 +680,12 @@
 <template>
     <div
         :class="{ 'buffer-tree': true, 'root-drop-target': draggingBufferPath && dragOverFolderPath === '' }"
+        ref="container"
+        tabindex="0"
+        role="tree"
         @contextmenu="onBackgroundContextMenu"
+        @focus="onTreeFocus"
+        @keydown="onTreeKeyDown"
         @dragover="onTreeDragOver"
         @drop="onTreeDrop"
     >
@@ -556,7 +693,8 @@
             <NewFolderItem
                 v-if="item.type === 'new-folder'"
                 :parentPath="item.path"
-                :level="item.level + 1"
+                :level="item.level"
+                :showIndentGuides="true"
                 @create-folder="onCreateFolder"
                 @cancel="onCancelCreateFolder"
             />
@@ -569,17 +707,27 @@
                     open: item.open,
                     active: item.active,
                     scratch: item.scratch,
+                    selected: itemKey(item) === selectedItemKey,
                     'drop-target': item.type === 'folder' && dragOverFolderPath === item.path,
                 }"
                 :style="{ '--indent-level': item.level }"
                 :draggable="item.type === 'buffer' && !item.scratch"
-                @click="item.type === 'folder' ? onFolderClick(item.path) : openBuffer(item.path)"
+                role="treeitem"
+                :aria-expanded="item.type === 'folder' ? String(!!item.open) : undefined"
+                :aria-selected="itemKey(item) === selectedItemKey ? 'true' : 'false'"
+                @click="onItemClick(item)"
                 @contextmenu.stop="onItemContextMenu(item, $event)"
                 @dragstart="item.type === 'buffer' ? onBufferDragStart(item.path, $event) : null"
                 @dragend="item.type === 'buffer' ? onBufferDragEnd() : null"
                 @dragover="item.type === 'folder' ? onFolderDragOver(item.path, $event) : item.type === 'buffer' ? onBufferDragOver(item.path, $event) : null"
                 @drop="item.type === 'folder' ? onFolderDrop(item.path, $event) : item.type === 'buffer' ? onBufferDrop(item.path, $event) : null"
             >
+                <span
+                    v-for="guideLevel in indentGuides(item.level)"
+                    :key="guideLevel"
+                    class="indent-guide"
+                    :style="{ '--guide-level': guideLevel }"
+                ></span>
                 <span class="name" :title="item.name">{{ item.name }}</span>
             </div>
         </template>
@@ -595,6 +743,12 @@
         overflow-x: hidden
         padding: 4px 0
         box-sizing: border-box
+        &:focus
+            outline: none
+            .item.selected
+                outline: 1px solid #48b57e
+                outline-offset: -1px
+                z-index: 1
         &.root-drop-target
             background: rgba(0,0,0, 0.05)
             +dark-mode
@@ -607,8 +761,9 @@
         padding: 2px 10px
         scroll-margin-top: 36px
         scroll-margin-bottom: 36px
-        padding-left: calc(22px + var(--indent-level) * 16px)
+        padding-left: calc(24px + var(--indent-level) * 20px)
         //border-radius: 4px
+        position: relative
         white-space: nowrap
         overflow: hidden
         text-overflow: ellipsis
@@ -617,21 +772,22 @@
         +dark-mode
             color: rgba(255,255,255, 0.6)
         &.buffer
+            padding-left: calc(13px + var(--indent-level) * 20px)
             &:hover
                 background-color: rgba(0,0,0, 0.06)
                 +dark-mode
-                    background: rgba(255,255,255, 0.08)
+                    background-color: rgba(255,255,255, 0.08)
             &.active
-                background: #d4ded9
+                background-color: #d4ded9
                 +dark-mode
-                    background: #244233
+                    background-color: #244233
             &.scratch
                 font-style: italic
         &.folder
             background-image: url('@/assets/icons/caret-right.svg')
             background-size: 12px
             background-repeat: no-repeat
-            background-position-x: calc(7px + var(--indent-level) * 16px)
+            background-position-x: calc(9px + var(--indent-level) * 20px)
             background-position-y: 6px
             +dark-mode
                 background-image: url('@/assets/icons/caret-right-white.svg')
@@ -648,6 +804,28 @@
                 +dark-mode
                     background-color: rgba(255,255,255, 0.16)
 
+    .indent-guide
+        position: absolute
+        top: 0
+        bottom: 0
+        left: calc(14px + var(--guide-level) * 20px)
+        width: 1px
+        opacity: 0
+        pointer-events: none
+        background: rgba(0,0,0, 0.14)
+        transition: opacity 80ms ease
+        +dark-mode
+            background: rgba(255,255,255, 0.18)
+
+    .buffer-tree:hover .indent-guide,
+    :global(.left-panel:hover) .buffer-tree .indent-guide
+        opacity: 1
+
+    .buffer-tree:hover :deep(.show-indent-guides .indent-guide),
+    :global(.left-panel:hover) .buffer-tree :deep(.show-indent-guides .indent-guide)
+        opacity: 1
+
     .name
         display: block
+        position: relative
 </style>

@@ -13,6 +13,10 @@
                 type: Boolean,
                 default: true,
             },
+            showIndentGuides: {
+                type: Boolean,
+                default: false,
+            },
         },
 
         data() {
@@ -35,7 +39,8 @@
             className() {
                 return {
                     folder: true,
-                    selected: true
+                    selected: true,
+                    "show-indent-guides": this.showIndentGuides,
                 }
             },
             
@@ -43,7 +48,11 @@
                 return {
                     "--indent-level": this.level,
                 }
-            }
+            },
+
+            indentGuides() {
+                return Array.from({ length: Math.max(0, this.level) }, (_, index) => index)
+            },
         },
 
         methods: {
@@ -100,6 +109,14 @@
         :class="className"
         :style="style"
     >
+        <template v-if="showIndentGuides">
+            <span
+                v-for="guideLevel in indentGuides"
+                :key="guideLevel"
+                class="indent-guide"
+                :style="{ '--guide-level': guideLevel }"
+            ></span>
+        </template>
         <input 
             type="text" 
             v-model="name"
@@ -118,12 +135,23 @@
     .folder
         padding: 3px 6px
         font-size: 13px
-        padding-left: calc(0px + var(--indent-level) * 16px)
+        padding-left: calc(13px + var(--indent-level) * 20px)
         display: flex
-        background: #f1f1f1
-        +dark-mode
-            background-color: #39393a
-                
+        position: relative
+
+        &.show-indent-guides
+            .indent-guide
+                position: absolute
+                top: 0
+                bottom: 0
+                left: calc(14px + var(--guide-level) * 20px)
+                width: 1px
+                opacity: 0
+                pointer-events: none
+                background: rgba(0,0,0, 0.14)
+                transition: opacity 80ms ease
+                +dark-mode
+                    background: rgba(255,255,255, 0.18)
 
         input
             width: 100%
@@ -143,5 +171,9 @@
                 font-size: 12px
             +dark-mode
                 background: #3b3b3b
+
+    :global(.left-panel:hover) .folder.show-indent-guides .indent-guide,
+    :global(.buffer-tree:hover) .folder.show-indent-guides .indent-guide
+        opacity: 1
 
 </style>

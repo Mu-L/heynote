@@ -1,4 +1,16 @@
-import { SETTINGS_CHANGE_EVENT, OPEN_SETTINGS_EVENT, SAVE_TABS_STATE, LOAD_TABS_STATE, WINDOW_CLOSE_EVENT } from "@/src/common/constants";
+import {
+    SETTINGS_CHANGE_EVENT,
+    OPEN_SETTINGS_EVENT,
+    SAVE_TABS_STATE,
+    LOAD_TABS_STATE,
+    WINDOW_CLOSE_EVENT,
+    LIBRARY_SEARCH_CANCEL,
+    LIBRARY_SEARCH_DONE,
+    LIBRARY_SEARCH_ERROR,
+    LIBRARY_SEARCH_MATCH,
+    LIBRARY_SEARCH_START,
+} from "@/src/common/constants";
+import { normalizeLibrarySearchMatch } from "@/src/common/library-search-match";
 import { NoteFormat } from "../src/common/note-format";
 
 const NOTE_KEY_PREFIX = "heynote-library__"
@@ -94,6 +106,11 @@ let initialSettings = {
     showTabs: true,
     showTabsInFullscreen: true,
     cursorBlinkRate: 1000,
+    librarySearchSettings: {
+        caseSensitive: false,
+        wholeWord: false,
+        regexp: false,
+    },
 }
 if (settingsData !== null) {
     initialSettings = Object.assign(initialSettings, JSON.parse(settingsData))
@@ -142,6 +159,21 @@ function getNoteMetadata(content) {
     } catch (e) {
         return {}
     }
+}
+
+function escapeRegExp(text) {
+    return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+}
+
+function createLibrarySearchPattern(options, flags) {
+    const query = options?.query || ""
+    if (options.regexp) {
+        return new RegExp(query, flags)
+    }
+    if (options.wholeWord) {
+        return new RegExp(`\\b${escapeRegExp(query)}\\b`, flags)
+    }
+    return new RegExp(escapeRegExp(query), flags)
 }
 
 // Migrate single buffer (Heynote pre 2.0) in localStorage to notes library
@@ -302,6 +334,11 @@ const Heynote = {
                         return JSON.parse(tabsState)
                     }
                     return undefined
+                case LIBRARY_SEARCH_START:
+                    searchLocalLibrary(args[0])
+                    return { ok: true }
+                case LIBRARY_SEARCH_CANCEL:
+                    return { ok: true }
             }
         }
     },
@@ -360,6 +397,66 @@ const Heynote = {
     async getSystemLocale() {
         return navigator.language
     },
+}
+
+function searchLocalLibrary(options) {
+    const query = options?.query || ""
+    if (query.length <= 2) {
+        ipcRenderer.send(LIBRARY_SEARCH_DONE, { searchId: options?.searchId })
+        return
+    }
+    const flags = options.caseSensitive ? "g" : "gi"
+    let pattern
+    try {
+        pattern = createLibrarySearchPattern(options, flags)
+    } catch (error) {
+        ipcRenderer.send(LIBRARY_SEARCH_ERROR, {
+            searchId: options.searchId,
+            message: `Invalid regular expression: ${error.message}`,
+        })
+        return
+    }
+    for (let [key, content] of Object.entries(localStorage)) {
+        if (!key.startsWith(NOTE_KEY_PREFIX)) {
+            continue
+        }
+        const buffer = key.slice(NOTE_KEY_PREFIX.length)
+        const lines = content.split(/\r?\n/)
+        lines.forEach((line, index) => {
+            const submatches = []
+            pattern.lastIndex = 0
+            let match = pattern.exec(line)
+            while (match) {
+                submatches.push({
+                    start: match.index,
+                    end: match.index + match[0].length,
+                    text: match[0],
+                })
+                if (match[0].length === 0) {
+                    pattern.lastIndex++
+                }
+                match = pattern.exec(line)
+            }
+            if (submatches.length === 0) {
+                return
+            }
+            const normalizedMatch = normalizeLibrarySearchMatch({
+                line,
+                lineNumber: index + 1,
+                submatches,
+            })
+            if (!normalizedMatch) {
+                return
+            }
+            ipcRenderer.send(LIBRARY_SEARCH_MATCH, {
+                searchId: options.searchId,
+                type: "match",
+                buffer,
+                ...normalizedMatch,
+            })
+        })
+    }
+    ipcRenderer.send(LIBRARY_SEARCH_DONE, { searchId: options.searchId })
 }
 
 window.addEventListener("beforeunload", () => ipcRenderer.send(WINDOW_CLOSE_EVENT))

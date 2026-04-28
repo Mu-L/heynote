@@ -7,6 +7,7 @@ import {
     WINDOW_CLOSE_EVENT, WINDOW_FULLSCREEN_STATE, WINDOW_FOCUS_STATE, SETTINGS_CHANGE_EVENT,
     TITLE_BAR_BG_LIGHT, TITLE_BAR_BG_LIGHT_BLURRED, TITLE_BAR_BG_DARK, TITLE_BAR_BG_DARK_BLURRED,
     SCRATCH_FILE_NAME, SAVE_TABS_STATE, LOAD_TABS_STATE, CONTEXT_MENU_CLOSED, GET_SYSTEM_LOCALE,
+    LIBRARY_SEARCH_START, LIBRARY_SEARCH_CANCEL, LIBRARY_SEARCH_MATCH, LIBRARY_SEARCH_DONE, LIBRARY_SEARCH_ERROR,
 } from '@/src/common/constants'
 
 import { menu, getTrayMenu, getEditorContextMenu, getTabContextMenu, getBufferTreeContextMenu, getBufferTreeDirectoryContextMenu, getBufferTreeBackgroundContextMenu, getSpellcheckingContextMenu } from './menu'
@@ -22,6 +23,7 @@ import {
     NOTES_DIR_NAME 
 } from './file-library';
 import { registerProtocol, registerProtocolBeforeAppReady } from "./protocol.js"
+import { startLibrarySearch } from "./ripgrep.js"
 
 
 // The built directory structure
@@ -62,6 +64,7 @@ Menu.setApplicationMenu(menu)
 
 export let win: BrowserWindow | null = null
 let fileLibrary: FileLibrary | null = null
+let currentLibrarySearch: any = null
 let tray: Tray | null = null;
 let initErrors: string[] = []
 // Here, you can also use other preload
@@ -520,6 +523,44 @@ ipcMain.handle("showSpellcheckingContextMenu", (event) => {
     getSpellcheckingContextMenu(win).popup({window: win})
 })
 
+function stopCurrentLibrarySearch() {
+    if (currentLibrarySearch) {
+        currentLibrarySearch.kill()
+        currentLibrarySearch = null
+    }
+}
+
+ipcMain.handle(LIBRARY_SEARCH_START, (event, options) => {
+    stopCurrentLibrarySearch()
+    if (!fileLibrary) {
+        throw new Error("File library is not initialized")
+    }
+
+    let controller: any = null
+    controller = startLibrarySearch(fileLibrary, options, (payload: any) => {
+        if (payload.type === "match") {
+            event.sender.send(LIBRARY_SEARCH_MATCH, payload)
+        } else if (payload.type === "done") {
+            if (currentLibrarySearch === controller) {
+                currentLibrarySearch = null
+            }
+            event.sender.send(LIBRARY_SEARCH_DONE, payload)
+        } else if (payload.type === "error") {
+            if (currentLibrarySearch === controller) {
+                currentLibrarySearch = null
+            }
+            event.sender.send(LIBRARY_SEARCH_ERROR, payload)
+        }
+    })
+    currentLibrarySearch = controller
+    return { ok: true }
+})
+
+ipcMain.handle(LIBRARY_SEARCH_CANCEL, () => {
+    stopCurrentLibrarySearch()
+    return { ok: true }
+})
+
 // Initialize note/file library
 async function initFileLibrary(win) {
     await migrateBufferFileToLibrary(app)
@@ -576,6 +617,7 @@ ipcMain.handle('settings:set', async (event, settings) => {
         registerAlwaysOnTop()
     }
     if (bufferPathChanged) {
+        stopCurrentLibrarySearch()
         console.log("bufferPath changed, closing existing file library")
         fileLibrary.close()
         console.log("initializing new file library")

@@ -65,7 +65,9 @@ export class FileLibrary {
         }
 
         // garbage collect stale images
-        this.removeUnreferencedImages()
+        this.removeUnreferencedImages().catch((err) => {
+            console.error(err)
+        })
     }
 
     async exists(path) {
@@ -277,6 +279,9 @@ export class FileLibrary {
         }
         
         const jp = jetpack.cwd(this.imagesBasePath)
+        if (!jetpack.exists(this.imagesBasePath)) {
+            return
+        }
         const files = await jp.findAsync("", {
             matching: "*",
             recursive: false,

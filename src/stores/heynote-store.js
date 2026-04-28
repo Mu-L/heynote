@@ -1,4 +1,4 @@
-import { toRaw, nextTick, watch } from 'vue';
+import { toRaw, watch } from 'vue';
 import { defineStore } from "pinia"
 import { NoteFormat } from "../common/note-format"
 import { toSafeBrowserLocale } from "../util/locale.js"
@@ -20,6 +20,8 @@ export const useHeynoteStore = defineStore("heynote", {
 
         currentEditor: null,
         currentBufferPath: null,
+        // One-shot focus request consumed by Editor.vue when a buffer load actually happens.
+        focusEditorOnBufferOpen: true,
         currentBufferName: null,
         currentLanguage: null,
         currentLanguageAuto: null,
@@ -43,8 +45,13 @@ export const useHeynoteStore = defineStore("heynote", {
         drawImageUrl: null,
         drawImageId: null,
 
-        showLeftPanel: window.heynote.settings.showLeftPanel ?? false,
-        leftPanelWidth: window.heynote.settings.leftPanelWidth ?? 220,
+        showLeftPanel: window.heynote.settings.showLeftPanel ?? true,
+        leftPanelWidth: window.heynote.settings.leftPanelWidth ?? 250,
+        currentLeftPanel: "buffer-tree",
+        hideLeftPanelOnLibrarySearchEscape: false,
+        librarySearchFocusRequestId: 0,
+        bufferTreeFocusRequestId: 0,
+        focusBufferTreeOnMount: false,
         isFullscreen: false,
         isFocused: true,
         systemLocale: navigator.language,
@@ -79,8 +86,62 @@ export const useHeynoteStore = defineStore("heynote", {
             this.setLeftPanelVisible(!this.showLeftPanel, true)
         },
 
-        openBuffer(path) {
+        openBufferExplorer() {
+            if (document.activeElement?.closest?.(".buffer-tree")) {
+                this.focusEditor()
+                return
+            }
             this.closeDialog()
+            this.focusBufferTreeOnMount = true
+            this.setLeftPanelVisible(true, true)
+            this.currentLeftPanel = "buffer-tree"
+            this.bufferTreeFocusRequestId++
+        },
+
+        openLibrarySearch() {
+            const wasLeftPanelVisible = this.showLeftPanel
+            this.closeDialog()
+            this.hideLeftPanelOnLibrarySearchEscape = !wasLeftPanelVisible
+            this.setLeftPanelVisible(true, true)
+            this.currentLeftPanel = "search"
+            this.librarySearchFocusRequestId++
+        },
+
+        closeLibrarySearchFromEscape() {
+            if (this.hideLeftPanelOnLibrarySearchEscape) {
+                this.hideLeftPanelOnLibrarySearchEscape = false
+                this.setLeftPanelVisible(false, true)
+            } else {
+                this.currentLeftPanel = "buffer-tree"
+            }
+            this.focusEditor()
+        },
+
+        consumeFocusBufferTreeOnMount() {
+            const focusBufferTree = this.focusBufferTreeOnMount
+            this.focusBufferTreeOnMount = false
+            return focusBufferTree
+        },
+
+        consumeFocusEditorOnBufferOpen() {
+            const focusEditor = this.focusEditorOnBufferOpen
+            this.focusEditorOnBufferOpen = true
+            return focusEditor
+        },
+
+        openBuffer(path, options = {}) {
+            this.closeDialog()
+            const focusEditor = options.focusEditor !== false
+
+            // Same-buffer opens do not trigger Editor.vue to consume this flag.
+            if (path === this.currentBufferPath) {
+                this.focusEditorOnBufferOpen = true
+                if (focusEditor) {
+                    this.focusEditor()
+                }
+            } else {
+                this.focusEditorOnBufferOpen = focusEditor
+            }
             this.currentBufferPath = path
             this.addRecentBuffer(path)
 

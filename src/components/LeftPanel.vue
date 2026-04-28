@@ -1,5 +1,5 @@
 <script>
-    import { mapState, mapStores } from "pinia"
+    import { mapState, mapStores, mapWritableState } from "pinia"
 
     import { TITLE_BAR_BG_LIGHT, TITLE_BAR_BG_DARK, TITLE_BAR_BG_LIGHT_BLURRED, TITLE_BAR_BG_DARK_BLURRED } from "@/src/common/constants"
     import { useHeynoteStore } from "@/src/stores/heynote-store"
@@ -7,11 +7,14 @@
 
     import MainMenuButton from "./tabs/MainMenuButton.vue"
     import BufferTree from "./buffer-tree/BufferTree.vue"
+    import LibrarySearch from "./library-search/LibrarySearch.vue"
+
 
     export default {
         components: {
             MainMenuButton,
             BufferTree,
+            LibrarySearch,
         },
 
         data() {
@@ -36,6 +39,9 @@
             ...mapState(useHeynoteStore, [
                 "isFocused",
             ]),
+            ...mapWritableState(useHeynoteStore, [
+                "currentLeftPanel",
+            ]),
             ...mapState(useSettingsStore, [
                 "theme",
             ]),
@@ -59,6 +65,14 @@
                 return {
                     resizer: true,
                     resizing: this.isResizing,
+                }
+            },
+        },
+
+        watch: {
+            currentLeftPanel(newPanel, oldPanel) {
+                if (oldPanel === "search" && newPanel !== "search") {
+                    this.heynoteStore.hideLeftPanelOnLibrarySearchEscape = false
                 }
             },
         },
@@ -112,7 +126,18 @@
             <MainMenuButton />
         </div>
         <div class="left-panel-content">
-            <BufferTree />
+            <BufferTree v-if="currentLeftPanel == 'buffer-tree'" />
+            <LibrarySearch v-if="currentLeftPanel == 'search'" />
+        </div>
+        <div class="left-panel-tab-buttons">
+            <button
+                @click="() => currentLeftPanel='buffer-tree'"
+                :class="{selected:currentLeftPanel=='buffer-tree'}"
+            ><i class="icon buffers"></i>Buffers</button>
+            <button
+                @click="() => currentLeftPanel='search'"
+                :class="{selected:currentLeftPanel=='search'}"
+            ><i class="icon search"></i>Search</button>
         </div>
         <div
             :class="resizerClass"
@@ -139,11 +164,75 @@
             height: var(--tab-bar-height)
             flex-shrink: 0
             app-region: drag
+            display: flex
 
         .left-panel-content
             flex-grow: 1
             min-height: 0
             //border-right: 1px solid var(--tab-bar-border-bottom-color)
+
+        .left-panel-tab-buttons
+            app-region: none
+            padding: 0px
+            display: flex
+            align-items: center
+            //justify-content: center
+            width: 100%
+            border-top: 1px solid var(--tab-bar-border-bottom-color)
+            +dark-mode
+                background: #282828
+            button
+                width: 50%
+                background: none
+                border: none
+                //border-radius: 3px 3px 0 0
+                padding: 5px 8px 6px 8px
+                margin-right: 0px
+                color: rgba(0,0,0, 0.6)
+                cursor: pointer
+                font-size: 12px
+                position: relative
+                top: -1px
+                border-top: 1px solid transparent
+                +dark-mode
+                    color: rgba(255,255,255, 0.6)
+                &:focus
+                    outline: none
+                &:focus-visible
+                    box-shadow: inset 0 0 0 2px #388c62
+                    z-index: 1
+                    +dark-mode
+                        box-shadow: inset 0 0 0 2px #48b57e
+                &:last-child  
+                    margin-right: 0
+                &:hover
+                    background-color: rgba(0,0,0, 0.08)
+                    +dark-mode
+                        background-color: rgba(255,255,255, 0.08)
+                &.selected
+                    border-top: 1px solid rgba(0,0,0, 0.7)
+                    +dark-mode
+                        border-top: 1px solid rgba(255,255,255, 0.8)
+                .icon
+                    display: inline-block
+                    width: 12px
+                    height: 12px
+                    background-size: 100%
+                    background-repeat: no-repeat
+                    margin-right: 5px
+                    position: relative
+                    top: 1px
+                    &.buffers
+                        background-image: url('@/assets/icons/files-light.svg')
+                        +dark-mode
+                            background-image: url('@/assets/icons/files-dark.svg')
+                    &.search
+                        background-image: url('@/assets/icons/search-light.svg')
+                        width: 13px
+                        height: 13px
+                        top: 2px
+                        +dark-mode
+                            background-image: url('@/assets/icons/search-dark.svg')
         
         .resizer
             position: absolute

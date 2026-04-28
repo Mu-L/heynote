@@ -48,8 +48,8 @@ const schema = {
             "showFoldGutter": {type: "boolean", default:true},
             "showTabs": {type: "boolean", default: true},
             "showTabsInFullscreen": {type: "boolean", default: true},
-            "showLeftPanel": {type: "boolean", default: false},
-            "leftPanelWidth": {type: "integer", default: 220},
+            "showLeftPanel": {type: "boolean", default: true},
+            "leftPanelWidth": {type: "integer", default: 250},
             "bufferTreeOpenFolders": {
                 type: "array",
                 items: {type: "string"},
@@ -89,6 +89,14 @@ const schema = {
                 type: "object",
                 properties: {
                     onlyCurrentBlock: {type: "boolean"},
+                    caseSensitive: {type: "boolean"},
+                    wholeWord: {type: "boolean"},
+                    regexp: {type: "boolean"},
+                },
+            },
+            "librarySearchSettings": {
+                type: "object",
+                properties: {
                     caseSensitive: {type: "boolean"},
                     wholeWord: {type: "boolean"},
                     regexp: {type: "boolean"},
@@ -134,8 +142,8 @@ const defaults = {
         keyBindings: [],
         showLineNumberGutter: true,
         showFoldGutter: true,
-        showLeftPanel: false,
-        leftPanelWidth: 220,
+        showLeftPanel: true,
+        leftPanelWidth: 250,
         bufferTreeOpenFolders: [],
         autoUpdate: true,
         allowBetaVersions: false,
@@ -150,6 +158,11 @@ const defaults = {
         tabSize: 4,
         searchSettings: {
             onlyCurrentBlock: true,
+            caseSensitive: false,
+            wholeWord: false,
+            regexp: false,
+        },
+        librarySearchSettings: {
             caseSensitive: false,
             wholeWord: false,
             regexp: false,

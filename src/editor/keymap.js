@@ -137,7 +137,9 @@ export const DEFAULT_KEYMAP = [
     cmd("Mod-0", "switchToLastTab"),
 
     // sidebar
-    cmd("Mod-Shift-e", "toggleLeftPanel"),
+    cmd("Mod-Shift-s", "toggleLeftPanel"),
+    cmd("Mod-Shift-e", "openBufferExplorer"),
+    cmd("Mod-Shift-f", "openLibrarySearch"),
 
     // search
     //cmd("Mod-f", "openSearchPanel"),
@@ -192,20 +194,24 @@ function keymapFromSpec(specs, editor) {
         if (key.indexOf("EmacsMeta") != -1) {
             key = key.replace("EmacsMeta", editor.emacsMetaKey === "alt" ? "Alt" : "Meta")
         }
+        const command = HEYNOTE_COMMANDS[spec.command]
+        const scopes = spec.scope ? spec.scope.split(" ") : ["editor"]
+        if (command?.global) {
+            scopes.push("global")
+        }
         return {
             key: key,
             //preventDefault: true,
             preventDefault: false,
             run: (view) => {
                 //console.log("run()", spec.key, spec.command)
-                const command = HEYNOTE_COMMANDS[spec.command]
                 if (!command) {
                     console.error(`Command not found: ${spec.command} (${spec.key})`)
                     return false
                 }
                 return command.run(editor)(view)
             },
-            scope: spec.scope,
+            scope: [...new Set(scopes)].join(" "),
         }
     }))
 }
@@ -298,7 +304,7 @@ export function getAllKeyBindingsForCommand(command, keymapName, userKeymap, ema
     const capturingCommands = new Set([
         "nothing", 
         "toggleAlwaysOnTop", 
-        "toggleLeftPanel",
+        "toggleLeftPanel", "openBufferExplorer", "openLibrarySearch",
         "openLanguageSelector", "openBufferSelector", "openCreateNewBuffer", "openMoveToBuffer", "openCommandPalette", 
         "closeCurrentTab", "reopenLastClosedTab", "nextTab", "previousTab", 
         "switchToTab1", "switchToTab2", "switchToTab3", "switchToTab4", "switchToTab5", "switchToTab6", "switchToTab7", "switchToTab8", "switchToTab9", "switchToLastTab"
