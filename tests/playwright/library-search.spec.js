@@ -17,10 +17,12 @@ function installLibraryState() {
         "scratch.txt": createBufferContent("Scratch", [
             "first needle match <∞img;id=search-test;file=https://example.com/needle.png;w=10;h=10∞>",
             "second needle match",
+            "issue-123 is tracked",
             "short non-match",
         ].join("\n")),
         "folder-a/project.txt": createBufferContent("Project Note", [
             "emoji context 🙂🙂🙂 and a long prefix before the important needle match",
+            "issue-456 is done",
             "another non-match",
         ].join("\n")),
         "folder-a/other.txt": createBufferContent("Other Note", "nothing to find here"),
@@ -70,6 +72,23 @@ test.describe("library search", () => {
             await expect(page.locator(".result-container")).toHaveCount(0)
             await expect(page.locator(".result-summary")).toContainText("0 results in 0 buffers")
         }
+    })
+
+    test("supports regular expression searches", async ({ page }) => {
+        await page.locator(".search-container .input-toggle.regex").click()
+        await page.locator(".search-container input.search-query").fill("issue-\\d+")
+
+        await expect(page.locator(".result-summary")).toContainText("2 results in 2 buffers")
+        await expect(page.locator(".result-container .match strong", { hasText: "issue-123" })).toHaveCount(1)
+        await expect(page.locator(".result-container .match strong", { hasText: "issue-456" })).toHaveCount(1)
+    })
+
+    test("shows invalid regular expression errors", async ({ page }) => {
+        await page.locator(".search-container .input-toggle.regex").click()
+        await page.locator(".search-container input.search-query").fill("[invalid")
+
+        await expect(page.locator(".search-error")).toContainText("Invalid regular expression")
+        await expect(page.locator(".result-container")).toHaveCount(0)
     })
 
     test("collapses and expands matches for a buffer", async ({ page }) => {

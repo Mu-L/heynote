@@ -101,6 +101,42 @@ describe("startLibrarySearch", () => {
         })
     })
 
+    it("supports regex matching when enabled", async () => {
+        await fs.promises.writeFile(
+            path.join(tmpDir, "scratch.txt"),
+            "literal a.b\nregex-looking axb\nregex-looking ayb\n",
+            "utf8"
+        )
+
+        const events = await runLibrarySearch(tmpDir, {
+            searchId: 457,
+            query: "a.b",
+            caseSensitive: true,
+            wholeWord: false,
+            regexp: true,
+        })
+        const matches = events.filter((event) => event.type === "match")
+
+        expect(matches).toHaveLength(3)
+        expect(matches.map((match) => match.line)).toEqual([
+            "literal a.b",
+            "regex-looking axb",
+            "regex-looking ayb",
+        ])
+    })
+
+    it("reports invalid regex errors", async () => {
+        await fs.promises.writeFile(path.join(tmpDir, "scratch.txt"), "content\n", "utf8")
+
+        await expect(runLibrarySearch(tmpDir, {
+            searchId: 458,
+            query: "[",
+            caseSensitive: true,
+            wholeWord: false,
+            regexp: true,
+        })).rejects.toThrow()
+    })
+
     it("reports submatch offsets as JavaScript string indexes", async () => {
         const line = "🙂🙂 foobar 🙂 foo"
         await fs.promises.writeFile(

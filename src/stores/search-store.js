@@ -147,7 +147,7 @@ export const useSearchStore = defineStore("search", {
                 query,
                 caseSensitive: this.caseSensitive,
                 wholeWord: this.wholeWord,
-                regexp: false,
+                regexp: this.regexp,
             })).catch((error) => {
                 if (searchId !== this.searchId) {
                     return

@@ -6,6 +6,7 @@ import {
     WINDOW_CLOSE_EVENT,
     LIBRARY_SEARCH_CANCEL,
     LIBRARY_SEARCH_DONE,
+    LIBRARY_SEARCH_ERROR,
     LIBRARY_SEARCH_MATCH,
     LIBRARY_SEARCH_START,
 } from "@/src/common/constants";
@@ -157,6 +158,17 @@ function getNoteMetadata(content) {
 
 function escapeRegExp(text) {
     return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+}
+
+function createLibrarySearchPattern(options, flags) {
+    const query = options?.query || ""
+    if (options.regexp) {
+        return new RegExp(query, flags)
+    }
+    if (options.wholeWord) {
+        return new RegExp(`\\b${escapeRegExp(query)}\\b`, flags)
+    }
+    return new RegExp(escapeRegExp(query), flags)
 }
 
 // Migrate single buffer (Heynote pre 2.0) in localStorage to notes library
@@ -389,9 +401,16 @@ function searchLocalLibrary(options) {
         return
     }
     const flags = options.caseSensitive ? "g" : "gi"
-    const pattern = options.wholeWord
-        ? new RegExp(`\\b${escapeRegExp(query)}\\b`, flags)
-        : new RegExp(escapeRegExp(query), flags)
+    let pattern
+    try {
+        pattern = createLibrarySearchPattern(options, flags)
+    } catch (error) {
+        ipcRenderer.send(LIBRARY_SEARCH_ERROR, {
+            searchId: options.searchId,
+            message: `Invalid regular expression: ${error.message}`,
+        })
+        return
+    }
     for (let [key, content] of Object.entries(localStorage)) {
         if (!key.startsWith(NOTE_KEY_PREFIX)) {
             continue
@@ -408,6 +427,9 @@ function searchLocalLibrary(options) {
                     end: match.index + match[0].length,
                     text: match[0],
                 })
+                if (match[0].length === 0) {
+                    pattern.lastIndex++
+                }
                 match = pattern.exec(line)
             }
             if (submatches.length === 0) {

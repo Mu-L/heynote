@@ -89,7 +89,6 @@ export function startLibrarySearch(library, options, onEvent) {
 
     const args = [
         "--json",
-        "--fixed-strings",
         "--line-number",
         "--column",
         "--glob",
@@ -97,6 +96,9 @@ export function startLibrarySearch(library, options, onEvent) {
         "--glob",
         "!.images/**",
     ]
+    if (!options.regexp) {
+        args.push("--fixed-strings")
+    }
     if (!options.caseSensitive) {
         args.push("--ignore-case")
     }

@@ -38,6 +38,9 @@
             wholeWord() {
                 this.search()
             },
+            regexp() {
+                this.search()
+            },
             librarySearchFocusRequestId() {
                 this.focusInput()
             },
@@ -47,6 +50,7 @@
             ...mapStores(useSearchStore, useHeynoteStore),
             ...mapState(useSearchStore, [
                 "results",
+                "error",
             ]),
             ...mapState(useHeynoteStore, [
                 "librarySearchFocusRequestId",
@@ -218,9 +222,11 @@
                     <InputToggle 
                         v-model="regexp" 
                         type="regex"
-                        :disabled="true"
                     />
                 </div>
+            </div>
+            <div v-if="error" class="search-error">
+                {{ error }}
             </div>
             <div v-if="hasSearchQuery" class="result-summary">
                 <b>{{ resultCount }}</b> results in <b>{{ bufferCount }}</b> buffers
@@ -269,6 +275,14 @@
                     color: rgba(0,0,0, 0.8)
                     +dark-mode
                         color: rgba(255,255,255, 0.8)
+            .search-error
+                margin-top: 8px
+                padding: 0 1px
+                font-size: 12px
+                line-height: 16px
+                color: #b42318
+                +dark-mode
+                    color: #ffb4ab
             .input-container
                 position: relative
                 flex-grow: 1
