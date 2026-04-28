@@ -147,6 +147,16 @@ test.describe("sidebar buffer tree", () => {
         await expect(folderB).toHaveAttribute("aria-expanded", "false")
     })
 
+    test("focuses the editor when Escape is pressed in the tree", async ({ page }) => {
+        const tree = page.locator(".buffer-tree")
+        await tree.focus()
+        await expect(tree).toBeFocused()
+
+        await tree.press("Escape")
+        await expect(page.locator(".cm-editor")).toHaveClass(/cm-focused/)
+        await expect(tree).not.toBeFocused()
+    })
+
     test("status bar sidebar button toggles left panel", async ({ page }) => {
         await expect(page.locator(".left-panel")).toBeVisible()
 

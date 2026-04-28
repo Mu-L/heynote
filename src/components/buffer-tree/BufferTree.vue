@@ -258,6 +258,11 @@
             },
 
             onTreeKeyDown(event) {
+                if (event.key === "Escape") {
+                    event.preventDefault()
+                    this.focusEditor()
+                    return
+                }
                 if (!["ArrowDown", "ArrowUp", "ArrowRight", "ArrowLeft", "Enter"].includes(event.key)) {
                     return
                 }
