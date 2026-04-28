@@ -314,7 +314,21 @@ test.describe("library search", () => {
         await input.fill("needle")
         await expect(input).toBeFocused()
 
+        await page.evaluate(() => {
+            window.__heynoteTestLastGlobalShortcut = null
+            window.addEventListener("keydown", (event) => {
+                if (event.key.toLowerCase() === "h" && event.ctrlKey && event.shiftKey) {
+                    window.__heynoteTestLastGlobalShortcut = {
+                        defaultPrevented: event.defaultPrevented,
+                    }
+                }
+            })
+        })
+
         await input.press("Control+Shift+H")
+        await expect.poll(() => page.evaluate(() => window.__heynoteTestLastGlobalShortcut)).toEqual({
+            defaultPrevented: true,
+        })
         await expect(page.locator(".note-selector .input-container input")).toHaveValue(">")
         await expect(page.locator(".note-selector .items > li.selected")).toBeVisible()
     })

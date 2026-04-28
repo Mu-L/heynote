@@ -221,7 +221,10 @@
                     return
                 }
 
-                runScopeHandlers(editor.view, event, "global")
+                if (runScopeHandlers(editor.view, event, "global")) {
+                    event.preventDefault()
+                    event.stopPropagation()
+                }
             },
 
             onSelectLanguage(language) {
