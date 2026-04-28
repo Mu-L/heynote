@@ -1,6 +1,6 @@
 import { app } from "electron"
 import Store from "electron-store"
-import { DEFAULT_LEFT_PANEL_WIDTH } from "@/src/common/constants"
+import { DEFAULT_LEFT_PANEL_WIDTH } from "../src/common/constants"
 import { isMac } from "./detect-platform"
 
 // the process.type === "browser" check is needed because both the main and renderer process 
