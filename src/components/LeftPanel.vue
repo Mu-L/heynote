@@ -133,12 +133,10 @@
             <button
                 @click="() => currentLeftPanel='buffer-tree'"
                 :class="{selected:currentLeftPanel=='buffer-tree'}"
-                tabindex="-1"
             ><i class="icon buffers"></i>Buffers</button>
             <button
                 @click="() => currentLeftPanel='search'"
                 :class="{selected:currentLeftPanel=='search'}"
-                tabindex="-1"
             ><i class="icon search"></i>Search</button>
         </div>
         <div
@@ -198,6 +196,13 @@
                 border-top: 1px solid transparent
                 +dark-mode
                     color: rgba(255,255,255, 0.6)
+                &:focus
+                    outline: none
+                &:focus-visible
+                    box-shadow: inset 0 0 0 2px #388c62
+                    z-index: 1
+                    +dark-mode
+                        box-shadow: inset 0 0 0 2px #48b57e
                 &:last-child  
                     margin-right: 0
                 &:hover
