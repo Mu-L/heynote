@@ -96,7 +96,9 @@ export function startLibrarySearch(library, options, onEvent) {
         "--glob",
         "!.images/**",
     ]
-    if (!options.regexp) {
+    if (options.regexp) {
+        args.push("--pcre2")
+    } else {
         args.push("--fixed-strings")
     }
     if (!options.caseSensitive) {

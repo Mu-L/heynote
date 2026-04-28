@@ -125,6 +125,30 @@ describe("startLibrarySearch", () => {
         ])
     })
 
+    it("supports PCRE2-only regex features when regex matching is enabled", async () => {
+        await fs.promises.writeFile(
+            path.join(tmpDir, "scratch.txt"),
+            "ticket-123\nticket-abc\n",
+            "utf8"
+        )
+
+        const events = await runLibrarySearch(tmpDir, {
+            searchId: 459,
+            query: "ticket-(?=\\d+)",
+            caseSensitive: true,
+            wholeWord: false,
+            regexp: true,
+        })
+        const matches = events.filter((event) => event.type === "match")
+
+        expect(matches).toHaveLength(1)
+        expect(matches[0]).toMatchObject({
+            buffer: "scratch.txt",
+            line: "ticket-123",
+            lineNumber: 1,
+        })
+    })
+
     it("reports invalid regex errors", async () => {
         await fs.promises.writeFile(path.join(tmpDir, "scratch.txt"), "content\n", "utf8")
 
