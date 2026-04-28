@@ -14,6 +14,12 @@ You can now turn on a sidebar with a tree view of all your buffers and directori
 </picture>
 
 
+### Search across all buffers
+
+A new global search function has been added. Use it to find text across all buffers in the library. The default 
+key binding to open up the global search is `Ctrl/Cmd + Shift + F`.
+
+
 ### Archive Scratch functionality
 
 A new archive action has been added for the default Scratch buffer. It can be accessed from the Scratch buffer's 
