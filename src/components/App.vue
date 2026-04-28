@@ -1,6 +1,7 @@
 <script>
     import { toRaw } from 'vue'
     import { mapState, mapActions } from 'pinia'
+    import { runScopeHandlers } from "@codemirror/view"
 
     import { mapWritableState, mapStores } from 'pinia'
     import { useHeynoteStore } from "../stores/heynote-store"
@@ -47,6 +48,7 @@
 
         mounted() {
             this.settingsStore.setUp()
+            window.addEventListener("keydown", this.onGlobalKeydown)
             
             window.heynote.mainProcess.on(OPEN_SETTINGS_EVENT, () => {
                 this.showSettings = true
@@ -104,6 +106,7 @@
         },
 
         beforeUnmount() {
+            window.removeEventListener("keydown", this.onGlobalKeydown)
             this.settingsStore.tearDown()
         },
 
@@ -202,6 +205,23 @@
             closeSettings() {
                 this.showSettings = false
                 this.focusEditor()
+            },
+
+            onGlobalKeydown(event) {
+                if (this.showSettings || event.defaultPrevented) {
+                    return
+                }
+
+                const editor = toRaw(this.heynoteStore.currentEditor)
+                if (!editor?.view) {
+                    return
+                }
+
+                if (event.target instanceof Node && editor.view.contentDOM.contains(event.target)) {
+                    return
+                }
+
+                runScopeHandlers(editor.view, event, "global")
             },
 
             onSelectLanguage(language) {

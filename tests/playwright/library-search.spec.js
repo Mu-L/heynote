@@ -119,6 +119,22 @@ test.describe("library search", () => {
         await expect(page.locator(".cm-editor")).toHaveClass(/cm-focused/)
     })
 
+    test("runs custom global key bindings while the search input is focused", async ({ page }) => {
+        await page.evaluate(() => {
+            const settings = JSON.parse(window.localStorage.getItem("settings") || "{}")
+            settings.keyBindings = [{key: "Ctrl-Shift-h", command: "openCommandPalette"}]
+            window.heynote.setSettings(settings)
+        })
+
+        const input = page.locator(".search-container input.search-query")
+        await input.fill("needle")
+        await expect(input).toBeFocused()
+
+        await input.press("Control+Shift+H")
+        await expect(page.locator(".note-selector .input-container input")).toHaveValue(">")
+        await expect(page.locator(".note-selector .items > li.selected")).toBeVisible()
+    })
+
     test("keeps the sidebar visible on Escape after switching away from library search", async ({ page }) => {
         await page.locator(".status .status-block.sidebar").click()
         await expect(page.locator(".left-panel")).toHaveCount(0)

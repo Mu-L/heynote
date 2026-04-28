@@ -193,20 +193,24 @@ function keymapFromSpec(specs, editor) {
         if (key.indexOf("EmacsMeta") != -1) {
             key = key.replace("EmacsMeta", editor.emacsMetaKey === "alt" ? "Alt" : "Meta")
         }
+        const command = HEYNOTE_COMMANDS[spec.command]
+        const scopes = spec.scope ? spec.scope.split(" ") : ["editor"]
+        if (command?.global) {
+            scopes.push("global")
+        }
         return {
             key: key,
             //preventDefault: true,
             preventDefault: false,
             run: (view) => {
                 //console.log("run()", spec.key, spec.command)
-                const command = HEYNOTE_COMMANDS[spec.command]
                 if (!command) {
                     console.error(`Command not found: ${spec.command} (${spec.key})`)
                     return false
                 }
                 return command.run(editor)(view)
             },
-            scope: spec.scope,
+            scope: [...new Set(scopes)].join(" "),
         }
     }))
 }
