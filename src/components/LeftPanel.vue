@@ -69,6 +69,14 @@
             },
         },
 
+        watch: {
+            currentLeftPanel(newPanel, oldPanel) {
+                if (oldPanel === "search" && newPanel !== "search") {
+                    this.heynoteStore.hideLeftPanelOnLibrarySearchEscape = false
+                }
+            },
+        },
+
         methods: {
             onResizerMouseDown(event) {
                 if (event.button !== 0) {

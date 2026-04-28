@@ -138,6 +138,7 @@ export const DEFAULT_KEYMAP = [
 
     // sidebar
     cmd("Mod-Shift-e", "toggleLeftPanel"),
+    cmd("Mod-Shift-f", "openLibrarySearch"),
 
     // search
     //cmd("Mod-f", "openSearchPanel"),
@@ -298,7 +299,7 @@ export function getAllKeyBindingsForCommand(command, keymapName, userKeymap, ema
     const capturingCommands = new Set([
         "nothing", 
         "toggleAlwaysOnTop", 
-        "toggleLeftPanel",
+        "toggleLeftPanel", "openLibrarySearch",
         "openLanguageSelector", "openBufferSelector", "openCreateNewBuffer", "openMoveToBuffer", "openCommandPalette", 
         "closeCurrentTab", "reopenLastClosedTab", "nextTab", "previousTab", 
         "switchToTab1", "switchToTab2", "switchToTab3", "switchToTab4", "switchToTab5", "switchToTab6", "switchToTab7", "switchToTab8", "switchToTab9", "switchToLastTab"

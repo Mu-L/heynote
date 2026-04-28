@@ -110,6 +110,13 @@ export function toggleLeftPanel(editor) {
     }
 }
 
+export function openLibrarySearch(editor) {
+    return (view) => {
+        useHeynoteStore().openLibrarySearch()
+        return true
+    }
+}
+
 const nothing = (view) => {
     return true
 }
@@ -155,6 +162,7 @@ const HEYNOTE_COMMANDS = {
     unfoldBlock: cmd(unfoldBlock, "Block", "Unfold block"),
     toggleBlockFold: cmd(toggleBlockFold, "Block", "Toggle block fold"),
     toggleLeftPanel: cmd(toggleLeftPanel, "Editor", "Toggle left sidebar panel"),
+    openLibrarySearch: cmd(openLibrarySearch, "Search", "Open library search"),
 
     // tab commands
     closeCurrentTab: cmd(closeCurrentTab, "Buffer", "Close current tab"),

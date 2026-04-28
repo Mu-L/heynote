@@ -1,4 +1,4 @@
-import { toRaw, nextTick, watch } from 'vue';
+import { toRaw, watch } from 'vue';
 import { defineStore } from "pinia"
 import { NoteFormat } from "../common/note-format"
 import { toSafeBrowserLocale } from "../util/locale.js"
@@ -46,6 +46,8 @@ export const useHeynoteStore = defineStore("heynote", {
         showLeftPanel: window.heynote.settings.showLeftPanel ?? false,
         leftPanelWidth: window.heynote.settings.leftPanelWidth ?? 220,
         currentLeftPanel: "buffer-tree",
+        hideLeftPanelOnLibrarySearchEscape: false,
+        librarySearchFocusRequestId: 0,
         isFullscreen: false,
         isFocused: true,
         systemLocale: navigator.language,
@@ -78,6 +80,25 @@ export const useHeynoteStore = defineStore("heynote", {
 
         toggleLeftPanel() {
             this.setLeftPanelVisible(!this.showLeftPanel, true)
+        },
+
+        openLibrarySearch() {
+            const wasLeftPanelVisible = this.showLeftPanel
+            this.closeDialog()
+            this.hideLeftPanelOnLibrarySearchEscape = !wasLeftPanelVisible
+            this.setLeftPanelVisible(true, true)
+            this.currentLeftPanel = "search"
+            this.librarySearchFocusRequestId++
+        },
+
+        closeLibrarySearchFromEscape() {
+            if (this.hideLeftPanelOnLibrarySearchEscape) {
+                this.hideLeftPanelOnLibrarySearchEscape = false
+                this.setLeftPanelVisible(false, true)
+            } else {
+                this.currentLeftPanel = "buffer-tree"
+            }
+            this.focusEditor()
         },
 
         openBuffer(path) {

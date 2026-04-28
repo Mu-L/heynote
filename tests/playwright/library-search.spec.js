@@ -93,6 +93,53 @@ test.describe("library search", () => {
         await expect(page.getByRole("button", { name: "Buffers" })).toHaveClass(/selected/)
     })
 
+    test("opens the search tab and left panel with the default keyboard shortcut", async ({ page }) => {
+        await page.locator(".status .status-block.sidebar").click()
+        await expect(page.locator(".left-panel")).toHaveCount(0)
+        await expect(page.locator(".cm-editor")).toHaveClass(/cm-focused/)
+
+        await page.locator("body").press("ControlOrMeta+Shift+F")
+
+        await expect(page.locator(".left-panel")).toBeVisible()
+        await expect(page.locator(".search-container")).toBeVisible()
+        await expect(page.getByRole("button", { name: "Search" })).toHaveClass(/selected/)
+        await expect(page.locator(".search-container input.search-query")).toBeFocused()
+    })
+
+    test("hides the sidebar on Escape when library search was opened from a hidden sidebar", async ({ page }) => {
+        await page.locator(".status .status-block.sidebar").click()
+        await expect(page.locator(".left-panel")).toHaveCount(0)
+
+        await page.locator("body").press("ControlOrMeta+Shift+F")
+        const input = page.locator(".search-container input.search-query")
+        await expect(input).toBeFocused()
+
+        await input.press("Escape")
+        await expect(page.locator(".left-panel")).toHaveCount(0)
+        await expect(page.locator(".cm-editor")).toHaveClass(/cm-focused/)
+    })
+
+    test("keeps the sidebar visible on Escape after switching away from library search", async ({ page }) => {
+        await page.locator(".status .status-block.sidebar").click()
+        await expect(page.locator(".left-panel")).toHaveCount(0)
+
+        await page.locator("body").press("ControlOrMeta+Shift+F")
+        await expect(page.locator(".search-container input.search-query")).toBeFocused()
+
+        await page.getByRole("button", { name: "Buffers" }).click()
+        await expect(page.locator(".buffer-tree")).toBeVisible()
+
+        await page.getByRole("button", { name: "Search" }).click()
+        const input = page.locator(".search-container input.search-query")
+        await expect(input).toBeFocused()
+
+        await input.press("Escape")
+        await expect(page.locator(".left-panel")).toBeVisible()
+        await expect(page.locator(".buffer-tree")).toBeVisible()
+        await expect(page.getByRole("button", { name: "Buffers" })).toHaveClass(/selected/)
+        await expect(page.locator(".cm-editor")).toHaveClass(/cm-focused/)
+    })
+
     test("shows indentation guides when the sidebar is hovered", async ({ page }) => {
         await page.locator(".search-container input.search-query").fill("needle")
 

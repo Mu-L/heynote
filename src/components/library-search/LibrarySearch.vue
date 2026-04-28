@@ -21,7 +21,7 @@
         mounted() {
             this.searchStore.initializeSearchListeners()
             this.query = this.searchStore.query
-            this.$refs.input.focus()
+            this.focusInput()
         },
 
         beforeUnmount() {
@@ -38,12 +38,18 @@
             wholeWord() {
                 this.search()
             },
+            librarySearchFocusRequestId() {
+                this.focusInput()
+            },
         },
 
         computed: {
             ...mapStores(useSearchStore, useHeynoteStore),
             ...mapState(useSearchStore, [
                 "results",
+            ]),
+            ...mapState(useHeynoteStore, [
+                "librarySearchFocusRequestId",
             ]),
             ...mapWritableState(useSearchStore, [
                 "caseSensitive",
@@ -69,9 +75,14 @@
                 this.searchStore.search(this.query)
             },
 
-            focusEditor() {
-                this.heynoteStore.currentLeftPanel = "buffer-tree"
-                this.heynoteStore.focusEditor()
+            focusInput() {
+                this.$nextTick(() => {
+                    this.$refs.input?.focus()
+                })
+            },
+
+            closeFromEscape() {
+                this.heynoteStore.closeLibrarySearchFromEscape()
             },
         },
     }
@@ -88,7 +99,7 @@
                     placeholder="Find…"
                     class="search-query"
                     main-field
-                    @keydown.esc.prevent.stop="focusEditor"
+                    @keydown.esc.prevent.stop="closeFromEscape"
                 />
                 <div class="input-buttons">
                     <InputToggle 
