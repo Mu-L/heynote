@@ -274,7 +274,8 @@
                 vertical-align: middle
             .dir
                 margin-left: 10px
-                font-size: 0.8em
+                font-size: 0.9em
+                vertical-align: middle
                 opacity: 0.65
         .matches 
             .match
