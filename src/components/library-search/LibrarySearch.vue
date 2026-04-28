@@ -81,6 +81,20 @@
                 })
             },
 
+            focusFirstResult() {
+                this.$nextTick(() => {
+                    this.$el?.querySelector(".search-result-row")?.focus()
+                })
+            },
+
+            onInputKeyDown(event) {
+                if (event.key !== "ArrowDown") {
+                    return
+                }
+                event.preventDefault()
+                this.focusFirstResult()
+            },
+
             closeFromEscape() {
                 this.heynoteStore.closeLibrarySearchFromEscape()
             },
@@ -99,6 +113,7 @@
                     placeholder="Find…"
                     class="search-query"
                     main-field
+                    @keydown="onInputKeyDown"
                     @keydown.esc.prevent.stop="closeFromEscape"
                 />
                 <div class="input-buttons">

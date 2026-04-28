@@ -23,6 +23,10 @@ function installLibraryState() {
     return { settings, notes }
 }
 
+function modifierKey() {
+    return process.platform === "darwin" ? "Meta" : "Control"
+}
+
 test.describe("sidebar buffer tree", () => {
     test.beforeEach(async ({ page }) => {
         const state = installLibraryState()
@@ -101,6 +105,48 @@ test.describe("sidebar buffer tree", () => {
         }).toContain("Deep content")
     })
 
+    test("supports keyboard navigation", async ({ page }) => {
+        const tree = page.locator(".buffer-tree")
+        await tree.focus()
+        await expect(tree).toBeFocused()
+
+        const folderA = page.locator(".buffer-tree .folder", { hasText: "folder-a" })
+        const folderB = page.locator(".buffer-tree .folder", { hasText: "folder-b" })
+        const deepNote = page.locator(".buffer-tree .buffer", { hasText: "Deep Note" })
+
+        for (let i = 0; i < 10; i++) {
+            await tree.press("ArrowUp")
+        }
+        await expect(folderA).toHaveClass(/selected/)
+        await expect(folderA).toHaveCSS("outline-style", "solid")
+
+        await page.locator(".cm-editor").click()
+        await expect(page.locator(".cm-editor")).toHaveClass(/cm-focused/)
+        await expect(folderA).toHaveCSS("outline-style", "none")
+        await tree.focus()
+
+        await tree.press("ArrowDown")
+        await expect(folderB).toHaveClass(/selected/)
+
+        await tree.press("ArrowRight")
+        await expect(deepNote).toBeVisible()
+        await expect(folderB).toHaveAttribute("aria-expanded", "true")
+
+        await tree.press("ArrowDown")
+        await expect(deepNote).toHaveClass(/selected/)
+
+        await tree.press("Enter")
+        await expect(page.locator(".status .note")).toContainText("Deep Note")
+        await expect(page.locator(".buffer-tree .buffer.active", { hasText: "Deep Note" })).toBeVisible()
+
+        await tree.press("ArrowUp")
+        await expect(folderB).toHaveClass(/selected/)
+
+        await tree.press("ArrowLeft")
+        await expect(deepNote).toHaveCount(0)
+        await expect(folderB).toHaveAttribute("aria-expanded", "false")
+    })
+
     test("status bar sidebar button toggles left panel", async ({ page }) => {
         await expect(page.locator(".left-panel")).toBeVisible()
 
@@ -131,6 +177,21 @@ test.describe("sidebar buffer tree", () => {
 
         await page.evaluate(() => window._heynote_editor.executeCommand("toggleLeftPanel"))
         await expect(page.locator(".left-panel")).toBeVisible()
+    })
+
+    test("openBufferExplorer shortcut opens and toggles focus for the buffer tree", async ({ page }) => {
+        await page.evaluate(() => window._heynote_editor.executeCommand("toggleLeftPanel"))
+        await expect(page.locator(".left-panel")).toHaveCount(0)
+
+        await page.locator(".cm-editor").click()
+        await page.keyboard.press(`${modifierKey()}+Shift+E`)
+
+        const tree = page.locator(".buffer-tree")
+        await expect(page.locator(".left-panel")).toBeVisible()
+        await expect(tree).toBeFocused()
+
+        await page.keyboard.press(`${modifierKey()}+Shift+E`)
+        await expect(page.locator(".cm-editor")).toHaveClass(/cm-focused/)
     })
 
     test("resizes panel and persists width on mouseup", async ({ page }) => {

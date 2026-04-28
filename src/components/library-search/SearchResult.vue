@@ -48,6 +48,56 @@
                 this.$nextTick(() => this.focusEditor())
             },
 
+            onBufferKeyDown(event) {
+                if (this.moveFocusWithArrowKey(event)) {
+                    return
+                }
+                if (event.key === "ArrowRight") {
+                    event.preventDefault()
+                    this.open = true
+                    return
+                }
+                if (event.key === "ArrowLeft") {
+                    event.preventDefault()
+                    this.open = false
+                    return
+                }
+                if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault()
+                    this.toggleOpen()
+                }
+            },
+
+            onMatchKeyDown(event) {
+                if (this.moveFocusWithArrowKey(event)) {
+                    return
+                }
+                if (event.key === "Enter") {
+                    event.preventDefault()
+                    this.openMatch()
+                }
+            },
+
+            moveFocusWithArrowKey(event) {
+                const direction = event.key === "ArrowDown" ? 1 : event.key === "ArrowUp" ? -1 : 0
+                if (direction === 0) {
+                    return false
+                }
+                event.preventDefault()
+                const rows = [...(this.$el.closest(".search-container")?.querySelectorAll(".search-result-row") || [])]
+                const currentIndex = rows.indexOf(event.currentTarget)
+                if (currentIndex === -1) {
+                    return true
+                }
+                const nextIndex = Math.max(0, Math.min(rows.length - 1, currentIndex + direction))
+                rows[nextIndex]?.focus()
+                rows[nextIndex]?.scrollIntoView({
+                    behavior: "auto",
+                    block: "nearest",
+                })
+                return true
+            },
+
             highlightedParts(match) {
                 const submatches = this.normalizedSubmatches(match)
                 if (submatches.length === 0) {
@@ -147,19 +197,23 @@
 <template>
     <div class="result-container">
         <div
-            :class="{ buffer: true, open }"
+            :class="{ buffer: true, open, 'search-result-row': true }"
             :title="result.buffer"
+            tabindex="0"
             @click="toggleOpen"
+            @keydown="onBufferKeyDown"
         >
             <span class="name">{{ bufferName }}</span>
             <span v-if="bufferDir" class="dir">{{ bufferDir }}</span>
         </div>
         <div v-if="open" class="matches">
             <div
-                class="match"
+                class="match search-result-row"
                 v-for="match in result.matches"
                 :key="match.lineNumber + ':' + match.line"
+                tabindex="0"
                 @click="openMatch"
+                @keydown="onMatchKeyDown"
             >
                 <span
                     v-for="guideLevel in indentGuides(1)"
@@ -208,6 +262,12 @@
                 background-color: rgba(0,0,0, 0.06)
                 +dark-mode
                     background-color: rgba(255,255,255, 0.08)
+            &:focus
+                outline: none
+            &:focus-visible
+                outline: 1px solid #48b57e
+                outline-offset: -1px
+                z-index: 1
             .name
                 vertical-align: middle
             .dir
@@ -228,6 +288,12 @@
                     background-color: rgba(0,0,0, 0.06)
                     +dark-mode
                         background-color: rgba(255,255,255, 0.08)
+                &:focus
+                    outline: none
+                &:focus-visible
+                    outline: 1px solid #48b57e
+                    outline-offset: -1px
+                    z-index: 1
                 .indent-guide
                     position: absolute
                     top: 0

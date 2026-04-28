@@ -72,6 +72,52 @@ test.describe("library search", () => {
         await expect(scratchResult.locator(".match")).toHaveCount(2)
     })
 
+    test("supports keyboard focus and arrow navigation for result rows", async ({ page }) => {
+        const input = page.locator(".search-container input.search-query")
+        await input.fill("needle")
+        await expect(page.locator(".result-container .match")).toHaveCount(3)
+
+        const rows = page.locator(".search-result-row")
+        await expect(rows).toHaveCount(5)
+
+        await input.press("ArrowDown")
+        await expect(rows.nth(0)).toBeFocused()
+        await expect(rows.nth(0)).toHaveCSS("outline-style", "solid")
+
+        await rows.nth(0).press("ArrowDown")
+        await expect(rows.nth(1)).toBeFocused()
+
+        await rows.nth(1).press("ArrowDown")
+        await expect(rows.nth(2)).toBeFocused()
+
+        await rows.nth(2).press("ArrowDown")
+        await expect(rows.nth(3)).toBeFocused()
+
+        await rows.nth(3).press("ArrowUp")
+        await expect(rows.nth(2)).toBeFocused()
+    })
+
+    test("opens and closes result groups with left and right arrow keys", async ({ page }) => {
+        const input = page.locator(".search-container input.search-query")
+        await input.fill("needle")
+
+        const rows = page.locator(".search-result-row")
+        const firstResult = page.locator(".result-container").first()
+        await expect(firstResult.locator(".match")).not.toHaveCount(0)
+
+        await input.press("ArrowDown")
+        await expect(rows.nth(0)).toBeFocused()
+
+        await rows.nth(0).press("ArrowLeft")
+        await expect(firstResult.locator(".match")).toHaveCount(0)
+        await expect(rows.nth(0)).toHaveClass(/buffer/)
+        await expect(rows.nth(1)).toHaveClass(/buffer/)
+
+        await rows.nth(0).press("ArrowRight")
+        await expect(firstResult.locator(".match")).not.toHaveCount(0)
+        await expect(rows.nth(1)).toHaveClass(/match/)
+    })
+
     test("hides result summary and rows when the query is cleared", async ({ page }) => {
         const input = page.locator(".search-container input.search-query")
         await input.fill("needle")

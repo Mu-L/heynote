@@ -48,6 +48,7 @@ export const useHeynoteStore = defineStore("heynote", {
         currentLeftPanel: "buffer-tree",
         hideLeftPanelOnLibrarySearchEscape: false,
         librarySearchFocusRequestId: 0,
+        bufferTreeFocusRequestId: 0,
         isFullscreen: false,
         isFocused: true,
         systemLocale: navigator.language,
@@ -80,6 +81,17 @@ export const useHeynoteStore = defineStore("heynote", {
 
         toggleLeftPanel() {
             this.setLeftPanelVisible(!this.showLeftPanel, true)
+        },
+
+        openBufferExplorer() {
+            if (document.activeElement?.closest?.(".buffer-tree")) {
+                this.focusEditor()
+                return
+            }
+            this.closeDialog()
+            this.setLeftPanelVisible(true, true)
+            this.currentLeftPanel = "buffer-tree"
+            this.bufferTreeFocusRequestId++
         },
 
         openLibrarySearch() {
