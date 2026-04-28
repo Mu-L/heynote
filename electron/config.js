@@ -1,5 +1,6 @@
 import { app } from "electron"
 import Store from "electron-store"
+import { DEFAULT_LEFT_PANEL_WIDTH } from "@/src/common/constants"
 import { isMac } from "./detect-platform"
 
 // the process.type === "browser" check is needed because both the main and renderer process 
@@ -49,7 +50,7 @@ const schema = {
             "showTabs": {type: "boolean", default: true},
             "showTabsInFullscreen": {type: "boolean", default: true},
             "showLeftPanel": {type: "boolean", default: true},
-            "leftPanelWidth": {type: "integer", default: 250},
+            "leftPanelWidth": {type: "integer", default: DEFAULT_LEFT_PANEL_WIDTH},
             "bufferTreeOpenFolders": {
                 type: "array",
                 items: {type: "string"},
@@ -143,7 +144,7 @@ const defaults = {
         showLineNumberGutter: true,
         showFoldGutter: true,
         showLeftPanel: true,
-        leftPanelWidth: 250,
+        leftPanelWidth: DEFAULT_LEFT_PANEL_WIDTH,
         bufferTreeOpenFolders: [],
         autoUpdate: true,
         allowBetaVersions: false,

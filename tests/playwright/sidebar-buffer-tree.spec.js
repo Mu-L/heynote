@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test"
+import { DEFAULT_LEFT_PANEL_WIDTH } from "@/src/common/constants.js"
 import { HeynotePage } from "./test-utils.js"
 
 function createBufferContent(name, content = "") {
@@ -11,7 +12,7 @@ function createBufferContent(name, content = "") {
 function installLibraryState() {
     const settings = {
         showLeftPanel: true,
-        leftPanelWidth: 250,
+        leftPanelWidth: DEFAULT_LEFT_PANEL_WIDTH,
         bufferTreeOpenFolders: ["folder-a", "missing-folder"],
     }
     const notes = {

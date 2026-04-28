@@ -4,6 +4,7 @@ import {
     SAVE_TABS_STATE,
     LOAD_TABS_STATE,
     WINDOW_CLOSE_EVENT,
+    DEFAULT_LEFT_PANEL_WIDTH,
     LIBRARY_SEARCH_CANCEL,
     LIBRARY_SEARCH_DONE,
     LIBRARY_SEARCH_ERROR,
@@ -105,6 +106,7 @@ let initialSettings = {
     keyBindings: [],
     showTabs: true,
     showTabsInFullscreen: true,
+    leftPanelWidth: DEFAULT_LEFT_PANEL_WIDTH,
     cursorBlinkRate: 1000,
     librarySearchSettings: {
         caseSensitive: false,

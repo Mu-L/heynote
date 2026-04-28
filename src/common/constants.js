@@ -1,5 +1,6 @@
 export const SCRATCH_FILE_NAME = "scratch.txt"
 export const AUTO_SAVE_INTERVAL = 2000
+export const DEFAULT_LEFT_PANEL_WIDTH = 210
 
 export const WINDOW_CLOSE_EVENT = "window-close"
 export const WINDOW_FULLSCREEN_STATE = "window-fullscreen-state"

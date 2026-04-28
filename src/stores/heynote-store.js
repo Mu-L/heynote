@@ -7,7 +7,8 @@ import { useEditorCacheStore } from "./editor-cache"
 import { useSettingsStore } from "./settings-store"
 import { 
     SCRATCH_FILE_NAME, WINDOW_FULLSCREEN_STATE, WINDOW_FOCUS_STATE, 
-    SAVE_TABS_STATE, LOAD_TABS_STATE, CONTEXT_MENU_CLOSED 
+    SAVE_TABS_STATE, LOAD_TABS_STATE, CONTEXT_MENU_CLOSED,
+    DEFAULT_LEFT_PANEL_WIDTH,
 } from "../common/constants"
 
 
@@ -46,7 +47,7 @@ export const useHeynoteStore = defineStore("heynote", {
         drawImageId: null,
 
         showLeftPanel: window.heynote.settings.showLeftPanel ?? true,
-        leftPanelWidth: window.heynote.settings.leftPanelWidth ?? 250,
+        leftPanelWidth: window.heynote.settings.leftPanelWidth ?? DEFAULT_LEFT_PANEL_WIDTH,
         currentLeftPanel: "buffer-tree",
         hideLeftPanelOnLibrarySearchEscape: false,
         librarySearchFocusRequestId: 0,
