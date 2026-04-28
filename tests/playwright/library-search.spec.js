@@ -72,29 +72,89 @@ test.describe("library search", () => {
         await expect(scratchResult.locator(".match")).toHaveCount(2)
     })
 
+    test("opens a match without focusing the editor and selects the match", async ({ page }) => {
+        await page.locator(".search-container input.search-query").fill("needle")
+
+        const match = page.locator(".result-container .match", { hasText: "important" })
+        await match.click()
+
+        await expect(page.locator(".cm-editor.cm-focused")).toHaveCount(0)
+        await expect(page.locator(".results")).toBeFocused()
+        await expect(match).toHaveClass(/selected/)
+        await expect.poll(async () => {
+            return await page.evaluate(() => window._heynote_editor.path)
+        }).toBe("folder-a/project.txt")
+        await expect.poll(async () => {
+            return await page.evaluate(() => {
+                const editor = window._heynote_editor
+                const selection = editor.view.state.selection.main
+                return editor.view.state.doc.sliceString(selection.from, selection.to)
+            })
+        }).toBe("needle")
+    })
+
+    test("does not leak suppressed editor focus after opening a match in the current buffer", async ({ page }) => {
+        await page.locator(".search-container input.search-query").fill("needle")
+
+        const currentBufferMatch = page.locator(".result-container", { hasText: "Scratch" }).locator(".match", { hasText: "first" })
+        await currentBufferMatch.click()
+        await expect(page.locator(".results")).toBeFocused()
+        await expect(page.locator(".cm-editor.cm-focused")).toHaveCount(0)
+
+        await page.evaluate(() => {
+            const store = window._heynote_editor.notesStore
+            store.closedTabs = [{ path: "folder-a/project.txt", index: store.openTabs.length }]
+            store.reopenLastClosedTab()
+        })
+
+        await expect.poll(async () => {
+            return await page.evaluate(() => window._heynote_editor.path)
+        }).toBe("folder-a/project.txt")
+        await expect(page.locator(".cm-editor.cm-focused")).toHaveCount(1)
+    })
+
     test("supports keyboard focus and arrow navigation for result rows", async ({ page }) => {
         const input = page.locator(".search-container input.search-query")
         await input.fill("needle")
         await expect(page.locator(".result-container .match")).toHaveCount(3)
 
         const rows = page.locator(".search-result-row")
+        const results = page.locator(".results")
         await expect(rows).toHaveCount(5)
 
         await input.press("ArrowDown")
-        await expect(rows.nth(0)).toBeFocused()
+        await expect(results).toBeFocused()
+        await expect(rows.nth(0)).toHaveClass(/selected/)
         await expect(rows.nth(0)).toHaveCSS("outline-style", "solid")
 
-        await rows.nth(0).press("ArrowDown")
-        await expect(rows.nth(1)).toBeFocused()
+        await results.press("ArrowDown")
+        await expect(rows.nth(1)).toHaveClass(/selected/)
 
-        await rows.nth(1).press("ArrowDown")
-        await expect(rows.nth(2)).toBeFocused()
+        await results.press("ArrowDown")
+        await expect(rows.nth(2)).toHaveClass(/selected/)
 
-        await rows.nth(2).press("ArrowDown")
-        await expect(rows.nth(3)).toBeFocused()
+        await results.press("ArrowDown")
+        await expect(rows.nth(3)).toHaveClass(/selected/)
 
-        await rows.nth(3).press("ArrowUp")
-        await expect(rows.nth(2)).toBeFocused()
+        await results.press("ArrowUp")
+        await expect(rows.nth(2)).toHaveClass(/selected/)
+    })
+
+    test("does not include result rows in the tab order", async ({ page }) => {
+        const input = page.locator(".search-container input.search-query")
+        await input.fill("needle")
+        await expect(page.locator(".result-container .match")).toHaveCount(3)
+
+        const rows = page.locator(".search-result-row")
+        await input.press("Tab")
+        await expect.poll(async () => {
+            return await page.evaluate(() => document.activeElement?.classList.contains("search-result-row"))
+        }).toBe(false)
+
+        await input.focus()
+        await input.press("ArrowDown")
+        await expect(page.locator(".results")).toBeFocused()
+        await expect(rows.nth(0)).toHaveClass(/selected/)
     })
 
     test("opens and closes result groups with left and right arrow keys", async ({ page }) => {
@@ -102,18 +162,20 @@ test.describe("library search", () => {
         await input.fill("needle")
 
         const rows = page.locator(".search-result-row")
+        const results = page.locator(".results")
         const firstResult = page.locator(".result-container").first()
         await expect(firstResult.locator(".match")).not.toHaveCount(0)
 
         await input.press("ArrowDown")
-        await expect(rows.nth(0)).toBeFocused()
+        await expect(results).toBeFocused()
+        await expect(rows.nth(0)).toHaveClass(/selected/)
 
-        await rows.nth(0).press("ArrowLeft")
+        await results.press("ArrowLeft")
         await expect(firstResult.locator(".match")).toHaveCount(0)
         await expect(rows.nth(0)).toHaveClass(/buffer/)
         await expect(rows.nth(1)).toHaveClass(/buffer/)
 
-        await rows.nth(0).press("ArrowRight")
+        await results.press("ArrowRight")
         await expect(firstResult.locator(".match")).not.toHaveCount(0)
         await expect(rows.nth(1)).toHaveClass(/match/)
     })
@@ -135,6 +197,36 @@ test.describe("library search", () => {
 
         await input.press("Escape")
         await expect(page.locator(".cm-editor")).toHaveClass(/cm-focused/)
+        await expect(page.locator(".buffer-tree")).toBeVisible()
+        await expect(page.getByRole("button", { name: "Buffers" })).toHaveClass(/selected/)
+    })
+
+    test("focuses the editor and switches to the Buffers tab when Escape is pressed on a focused result", async ({ page }) => {
+        const input = page.locator(".search-container input.search-query")
+        await input.fill("needle")
+
+        const rows = page.locator(".search-result-row")
+        const results = page.locator(".results")
+        await input.press("ArrowDown")
+        await results.press("ArrowDown")
+        await expect(results).toBeFocused()
+        await expect(rows.nth(1)).toHaveClass(/selected/)
+
+        await results.press("Escape")
+        await expect(page.locator(".cm-editor")).toHaveClass(/cm-focused/)
+        await expect(page.locator(".buffer-tree")).toBeVisible()
+        await expect(page.getByRole("button", { name: "Buffers" })).toHaveClass(/selected/)
+    })
+
+    test("focuses the editor when Escape is pressed after opening a match", async ({ page }) => {
+        await page.locator(".search-container input.search-query").fill("needle")
+
+        const match = page.locator(".result-container .match", { hasText: "important" })
+        await match.click()
+        await expect(page.locator(".results")).toBeFocused()
+
+        await page.locator(".results").press("Escape")
+        await expect(page.locator(".cm-editor.cm-focused")).toHaveCount(1)
         await expect(page.locator(".buffer-tree")).toBeVisible()
         await expect(page.getByRole("button", { name: "Buffers" })).toHaveClass(/selected/)
     })

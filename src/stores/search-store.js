@@ -21,6 +21,7 @@ export const useSearchStore = defineStore("search", {
         listenersInitialized: false,
         pendingMatches: [],
         flushScheduled: false,
+        selectedResultRow: null,
     }),
 
     actions: {
@@ -101,6 +102,26 @@ export const useSearchStore = defineStore("search", {
             })
         },
 
+        selectResultRow(row) {
+            this.selectedResultRow = row
+        },
+
+        selectMatch(match) {
+            this.selectResultRow({
+                type: "match",
+                buffer: match.buffer,
+                lineNumber: match.lineNumber,
+                line: match.line,
+            })
+        },
+
+        selectBuffer(buffer) {
+            this.selectResultRow({
+                type: "buffer",
+                buffer,
+            })
+        },
+
         search(query) {
             this.initializeSearchListeners()
             this.query = query
@@ -108,6 +129,7 @@ export const useSearchStore = defineStore("search", {
             this.results = []
             this.resultBufferIndex = {}
             this.pendingMatches = []
+            this.selectedResultRow = null
             this.error = null
 
             if (query.trim().length <= 2) {
@@ -137,6 +159,7 @@ export const useSearchStore = defineStore("search", {
             this.searchId++
             this.searching = false
             this.pendingMatches = []
+            this.selectedResultRow = null
             Promise.resolve(window.heynote.mainProcess.invoke(LIBRARY_SEARCH_CANCEL)).catch(() => {})
         },
     },

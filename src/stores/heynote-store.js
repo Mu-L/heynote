@@ -20,6 +20,8 @@ export const useHeynoteStore = defineStore("heynote", {
 
         currentEditor: null,
         currentBufferPath: null,
+        // One-shot focus request consumed by Editor.vue when a buffer load actually happens.
+        focusEditorOnBufferOpen: true,
         currentBufferName: null,
         currentLanguage: null,
         currentLanguageAuto: null,
@@ -113,8 +115,25 @@ export const useHeynoteStore = defineStore("heynote", {
             this.focusEditor()
         },
 
-        openBuffer(path) {
+        consumeFocusEditorOnBufferOpen() {
+            const focusEditor = this.focusEditorOnBufferOpen
+            this.focusEditorOnBufferOpen = true
+            return focusEditor
+        },
+
+        openBuffer(path, options = {}) {
             this.closeDialog()
+            const focusEditor = options.focusEditor !== false
+
+            // Same-buffer opens do not trigger Editor.vue to consume this flag.
+            if (path === this.currentBufferPath) {
+                this.focusEditorOnBufferOpen = true
+                if (focusEditor) {
+                    this.focusEditor()
+                }
+            } else {
+                this.focusEditorOnBufferOpen = focusEditor
+            }
             this.currentBufferPath = path
             this.addRecentBuffer(path)
 

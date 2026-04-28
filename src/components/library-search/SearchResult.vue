@@ -2,6 +2,7 @@
     import { mapActions, mapStores } from "pinia"
 
     import { useHeynoteStore } from "@/src/stores/heynote-store"
+    import { useSearchStore } from "@/src/stores/search-store"
 
     const MATCH_PREVIEW_CONTEXT_LENGTH = 30
     // Reuse one segmenter across result rows; constructing it per row is expensive
@@ -20,7 +21,7 @@
         },
 
         computed: {
-            ...mapStores(useHeynoteStore),
+            ...mapStores(useHeynoteStore, useSearchStore),
 
             bufferName() {
                 const buffer = this.heynoteStore.buffers[this.result.buffer]
@@ -36,66 +37,60 @@
         methods: {
             ...mapActions(useHeynoteStore, [
                 "openBuffer",
-                "focusEditor",
             ]),
 
             toggleOpen() {
                 this.open = !this.open
             },
 
-            openMatch() {
-                this.openBuffer(this.result.buffer)
-                this.$nextTick(() => this.focusEditor())
+            toggleBuffer(event) {
+                this.searchStore.selectBuffer(this.result.buffer)
+                this.toggleOpen()
+                this.focusResults(event.currentTarget)
             },
 
-            onBufferKeyDown(event) {
-                if (this.moveFocusWithArrowKey(event)) {
-                    return
-                }
-                if (event.key === "ArrowRight") {
-                    event.preventDefault()
-                    this.open = true
-                    return
-                }
-                if (event.key === "ArrowLeft") {
-                    event.preventDefault()
-                    this.open = false
-                    return
-                }
-                if (event.key === "Enter" || event.key === " ") {
-                    event.preventDefault()
-                    this.toggleOpen()
-                }
-            },
-
-            onMatchKeyDown(event) {
-                if (this.moveFocusWithArrowKey(event)) {
-                    return
-                }
-                if (event.key === "Enter") {
-                    event.preventDefault()
-                    this.openMatch()
-                }
-            },
-
-            moveFocusWithArrowKey(event) {
-                const direction = event.key === "ArrowDown" ? 1 : event.key === "ArrowUp" ? -1 : 0
-                if (direction === 0) {
-                    return false
-                }
-                event.preventDefault()
-                const rows = [...(this.$el.closest(".search-container")?.querySelectorAll(".search-result-row") || [])]
-                const currentIndex = rows.indexOf(event.currentTarget)
-                if (currentIndex === -1) {
-                    return true
-                }
-                const nextIndex = Math.max(0, Math.min(rows.length - 1, currentIndex + direction))
-                rows[nextIndex]?.focus()
-                rows[nextIndex]?.scrollIntoView({
-                    behavior: "auto",
-                    block: "nearest",
+            async openMatch(match, focusTarget) {
+                this.searchStore.selectMatch({
+                    buffer: this.result.buffer,
+                    ...match,
                 })
-                return true
+                this.openBuffer(this.result.buffer, { focusEditor: false })
+                await this.$nextTick()
+
+                const editor = this.heynoteStore.currentEditor
+                await editor?.contentLoadedPromise
+
+                if (this.heynoteStore.currentBufferPath !== this.result.buffer) {
+                    return
+                }
+
+                const firstSubmatch = this.normalizedSubmatches(match)[0]
+                if (firstSubmatch) {
+                    editor?.setSelectionAtLineColumns(match.lineNumber, firstSubmatch.start, firstSubmatch.end)
+                } else {
+                    editor?.setCursorPositionAtLineColumn(match.lineNumber)
+                }
+                if (this.heynoteStore.currentLeftPanel === "search" && focusTarget?.isConnected) {
+                    focusTarget.focus({ preventScroll: true })
+                }
+            },
+
+            focusResults(element) {
+                element?.closest(".results")?.focus({ preventScroll: true })
+            },
+
+            isSelectedBuffer() {
+                const selectedRow = this.searchStore.selectedResultRow
+                return selectedRow?.type === "buffer" &&
+                    selectedRow.buffer === this.result.buffer
+            },
+
+            isSelectedMatch(match) {
+                const selectedRow = this.searchStore.selectedResultRow
+                return selectedRow?.type === "match" &&
+                    selectedRow.buffer === this.result.buffer &&
+                    selectedRow.lineNumber === match.lineNumber &&
+                    selectedRow.line === match.line
             },
 
             highlightedParts(match) {
@@ -197,23 +192,25 @@
 <template>
     <div class="result-container">
         <div
-            :class="{ buffer: true, open, 'search-result-row': true }"
+            :class="{ buffer: true, open, 'search-result-row': true, selected: isSelectedBuffer() }"
             :title="result.buffer"
-            tabindex="0"
-            @click="toggleOpen"
-            @keydown="onBufferKeyDown"
+            data-row-type="buffer"
+            :data-buffer="result.buffer"
+            @click="toggleBuffer"
         >
             <span class="name">{{ bufferName }}</span>
             <span v-if="bufferDir" class="dir">{{ bufferDir }}</span>
         </div>
         <div v-if="open" class="matches">
             <div
-                class="match search-result-row"
+                :class="{ match: true, 'search-result-row': true, selected: isSelectedMatch(match) }"
                 v-for="match in result.matches"
                 :key="match.lineNumber + ':' + match.line"
-                tabindex="0"
-                @click="openMatch"
-                @keydown="onMatchKeyDown"
+                data-row-type="match"
+                :data-buffer="result.buffer"
+                :data-line-number="match.lineNumber"
+                :data-line="match.line"
+                @click="openMatch(match, $event.currentTarget.closest('.results'))"
             >
                 <span
                     v-for="guideLevel in indentGuides(1)"

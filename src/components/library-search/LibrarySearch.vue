@@ -83,7 +83,11 @@
 
             focusFirstResult() {
                 this.$nextTick(() => {
-                    this.$el?.querySelector(".search-result-row")?.focus()
+                    const row = this.resultRows()[0]
+                    if (row) {
+                        this.selectRow(row)
+                        this.focusResults()
+                    }
                 })
             },
 
@@ -93,6 +97,92 @@
                 }
                 event.preventDefault()
                 this.focusFirstResult()
+            },
+
+            resultRows() {
+                return [...(this.$refs.results?.querySelectorAll(".search-result-row") || [])]
+            },
+
+            selectedRow() {
+                return this.$refs.results?.querySelector(".search-result-row.selected")
+            },
+
+            selectRow(row) {
+                if (!row) {
+                    return
+                }
+
+                if (row.dataset.rowType === "buffer") {
+                    this.searchStore.selectBuffer(row.dataset.buffer)
+                } else if (row.dataset.rowType === "match") {
+                    this.searchStore.selectMatch({
+                        buffer: row.dataset.buffer,
+                        lineNumber: Number(row.dataset.lineNumber),
+                        line: row.dataset.line,
+                    })
+                }
+                row.scrollIntoView({
+                    behavior: "auto",
+                    block: "nearest",
+                })
+            },
+
+            focusResults() {
+                this.$refs.results?.focus({ preventScroll: true })
+            },
+
+            moveSelectedRow(direction) {
+                const rows = this.resultRows()
+                if (rows.length === 0) {
+                    return
+                }
+                const currentIndex = rows.indexOf(this.selectedRow())
+                const nextIndex = currentIndex === -1
+                    ? 0
+                    : Math.max(0, Math.min(rows.length - 1, currentIndex + direction))
+                this.selectRow(rows[nextIndex])
+            },
+
+            activateSelectedRow() {
+                this.selectedRow()?.click()
+            },
+
+            setSelectedBufferOpen(open) {
+                const row = this.selectedRow()
+                if (!row || row.dataset.rowType !== "buffer") {
+                    return
+                }
+                if (row.classList.contains("open") !== open) {
+                    row.click()
+                }
+            },
+
+            onResultsKeyDown(event) {
+                if (event.key === "Escape") {
+                    event.preventDefault()
+                    event.stopPropagation()
+                    this.closeFromEscape()
+                    return
+                }
+                if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+                    event.preventDefault()
+                    this.moveSelectedRow(event.key === "ArrowDown" ? 1 : -1)
+                    return
+                }
+                if (event.key === "ArrowRight") {
+                    event.preventDefault()
+                    this.setSelectedBufferOpen(true)
+                    return
+                }
+                if (event.key === "ArrowLeft") {
+                    event.preventDefault()
+                    this.setSelectedBufferOpen(false)
+                    return
+                }
+                if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault()
+                    this.activateSelectedRow()
+                }
             },
 
             closeFromEscape() {
@@ -136,7 +226,12 @@
                 <b>{{ resultCount }}</b> results in <b>{{ bufferCount }}</b> buffers
             </div>
         </header>
-        <div class="results">
+        <div
+            class="results"
+            ref="results"
+            tabindex="0"
+            @keydown="onResultsKeyDown"
+        >
             <SearchResult
                 v-for="result in results"
                 :key="result.buffer"
@@ -217,6 +312,12 @@
             padding-top: 12px
             overflow-y: scroll
             height: 100%
+            &:focus
+                outline: none
+                :deep(.search-result-row.selected)
+                    outline: 1px solid #48b57e
+                    outline-offset: -1px
+                    z-index: 1
 
     :global(.left-panel:hover) .search-container
         --search-indent-guide-opacity: 1
