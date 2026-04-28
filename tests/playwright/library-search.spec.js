@@ -34,10 +34,13 @@ test.describe("library search", () => {
     test.beforeEach(async ({ page }) => {
         const state = installLibraryState()
         await page.addInitScript((seed) => {
-            localStorage.clear()
-            localStorage.setItem("settings", JSON.stringify(seed.settings))
-            for (const [path, content] of Object.entries(seed.notes)) {
-                localStorage.setItem(`heynote-library__${path}`, content)
+            if (!sessionStorage.getItem("__heynoteLibrarySearchSeeded")) {
+                localStorage.clear()
+                localStorage.setItem("settings", JSON.stringify(seed.settings))
+                for (const [path, content] of Object.entries(seed.notes)) {
+                    localStorage.setItem(`heynote-library__${path}`, content)
+                }
+                sessionStorage.setItem("__heynoteLibrarySearchSeeded", "true")
             }
         }, state)
 
@@ -81,6 +84,35 @@ test.describe("library search", () => {
         await expect(page.locator(".result-summary")).toContainText("2 results in 2 buffers")
         await expect(page.locator(".result-container .match strong", { hasText: "issue-123" })).toHaveCount(1)
         await expect(page.locator(".result-container .match strong", { hasText: "issue-456" })).toHaveCount(1)
+    })
+
+    test("persists search setting toggles and defaults them to off", async ({ page }) => {
+        const caseSensitiveToggle = page.locator(".search-container .input-toggle.case-sensitive")
+        const wholeWordToggle = page.locator(".search-container .input-toggle.whole-words")
+        const regexToggle = page.locator(".search-container .input-toggle.regex")
+
+        await expect(caseSensitiveToggle).not.toHaveClass(/active/)
+        await expect(wholeWordToggle).not.toHaveClass(/active/)
+        await expect(regexToggle).not.toHaveClass(/active/)
+
+        await caseSensitiveToggle.click()
+        await wholeWordToggle.click()
+        await regexToggle.click()
+
+        await expect.poll(async () => {
+            return await page.evaluate(() => JSON.parse(window.localStorage.getItem("settings")).librarySearchSettings)
+        }).toEqual({
+            caseSensitive: true,
+            wholeWord: true,
+            regexp: true,
+        })
+
+        await page.reload()
+        await page.getByRole("button", { name: "Search" }).click()
+
+        await expect(page.locator(".search-container .input-toggle.case-sensitive")).toHaveClass(/active/)
+        await expect(page.locator(".search-container .input-toggle.whole-words")).toHaveClass(/active/)
+        await expect(page.locator(".search-container .input-toggle.regex")).toHaveClass(/active/)
     })
 
     test("shows invalid regular expression errors", async ({ page }) => {

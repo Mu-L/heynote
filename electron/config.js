@@ -94,6 +94,14 @@ const schema = {
                     regexp: {type: "boolean"},
                 },
             },
+            "librarySearchSettings": {
+                type: "object",
+                properties: {
+                    caseSensitive: {type: "boolean"},
+                    wholeWord: {type: "boolean"},
+                    regexp: {type: "boolean"},
+                },
+            },
         },
     },
 
@@ -150,6 +158,11 @@ const defaults = {
         tabSize: 4,
         searchSettings: {
             onlyCurrentBlock: true,
+            caseSensitive: false,
+            wholeWord: false,
+            regexp: false,
+        },
+        librarySearchSettings: {
             caseSensitive: false,
             wholeWord: false,
             regexp: false,

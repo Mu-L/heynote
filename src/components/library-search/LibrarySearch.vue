@@ -3,6 +3,7 @@
 
     import { useSearchStore } from '@/src/stores/search-store';
     import { useHeynoteStore } from "@/src/stores/heynote-store";
+    import { useSettingsStore } from "@/src/stores/settings-store.js";
     import InputToggle from '@/src/editor/search/InputToggle.vue';
     import SearchResult from "./SearchResult.vue";
 
@@ -33,12 +34,15 @@
                 this.search()
             },
             caseSensitive() {
+                this.persistLibrarySearchSettings()
                 this.search()
             },
             wholeWord() {
+                this.persistLibrarySearchSettings()
                 this.search()
             },
             regexp() {
+                this.persistLibrarySearchSettings()
                 this.search()
             },
             librarySearchFocusRequestId() {
@@ -47,7 +51,7 @@
         },
 
         computed: {
-            ...mapStores(useSearchStore, useHeynoteStore),
+            ...mapStores(useSearchStore, useHeynoteStore, useSettingsStore),
             ...mapState(useSearchStore, [
                 "results",
                 "error",
@@ -75,6 +79,17 @@
         },
 
         methods: {
+            persistLibrarySearchSettings() {
+                this.settingsStore.updateSettings({
+                    librarySearchSettings: {
+                        ...(this.settingsStore.settings.librarySearchSettings || {}),
+                        caseSensitive: this.caseSensitive,
+                        wholeWord: this.wholeWord,
+                        regexp: this.regexp,
+                    },
+                })
+            },
+
             search() {
                 this.searchStore.search(this.query)
             },

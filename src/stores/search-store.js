@@ -7,22 +7,34 @@ import {
     LIBRARY_SEARCH_START,
 } from "@/src/common/constants"
 
+const defaultLibrarySearchSettings = {
+    caseSensitive: false,
+    wholeWord: false,
+    regexp: false,
+}
+
 export const useSearchStore = defineStore("search", {
-    state: () => ({
-        results: [],
-        resultBufferIndex: {},
-        query: "",
-        caseSensitive: true,
-        wholeWord: false,
-        regexp: false,
-        searching: false,
-        error: null,
-        searchId: 0,
-        listenersInitialized: false,
-        pendingMatches: [],
-        flushScheduled: false,
-        selectedResultRow: null,
-    }),
+    state: () => {
+        const librarySearchSettings = {
+            ...defaultLibrarySearchSettings,
+            ...(window.heynote.settings.librarySearchSettings || {}),
+        }
+        return {
+            results: [],
+            resultBufferIndex: {},
+            query: "",
+            caseSensitive: librarySearchSettings.caseSensitive === true,
+            wholeWord: librarySearchSettings.wholeWord === true,
+            regexp: librarySearchSettings.regexp === true,
+            searching: false,
+            error: null,
+            searchId: 0,
+            listenersInitialized: false,
+            pendingMatches: [],
+            flushScheduled: false,
+            selectedResultRow: null,
+        }
+    },
 
     actions: {
         initializeSearchListeners() {

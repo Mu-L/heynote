@@ -106,6 +106,11 @@ let initialSettings = {
     showTabs: true,
     showTabsInFullscreen: true,
     cursorBlinkRate: 1000,
+    librarySearchSettings: {
+        caseSensitive: false,
+        wholeWord: false,
+        regexp: false,
+    },
 }
 if (settingsData !== null) {
     initialSettings = Object.assign(initialSettings, JSON.parse(settingsData))
