@@ -210,17 +210,18 @@ test.describe("sidebar buffer tree", () => {
         const before = await leftPanel.boundingBox()
         expect(before).not.toBeNull()
 
+        const dragDelta = 120
         const startX = before.x + before.width - 1
         const y = before.y + 20
         await page.mouse.move(startX, y)
         await page.mouse.down()
-        await page.mouse.move(startX + 120, y)
+        await page.mouse.move(startX + dragDelta, y)
         await page.mouse.up()
 
         await expect.poll(async () => {
             const settings = JSON.parse(await page.evaluate(() => localStorage.getItem("settings") || "{}"))
             return settings.leftPanelWidth
-        }).toBe(340)
+        }).toBe(Math.round(before.width + dragDelta))
 
         const after = await leftPanel.boundingBox()
         expect(after.width).toBeGreaterThan(before.width + 100)
