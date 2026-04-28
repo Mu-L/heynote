@@ -46,7 +46,7 @@ export const useHeynoteStore = defineStore("heynote", {
         drawImageId: null,
 
         showLeftPanel: window.heynote.settings.showLeftPanel ?? false,
-        leftPanelWidth: window.heynote.settings.leftPanelWidth ?? 220,
+        leftPanelWidth: window.heynote.settings.leftPanelWidth ?? 250,
         currentLeftPanel: "buffer-tree",
         hideLeftPanelOnLibrarySearchEscape: false,
         librarySearchFocusRequestId: 0,

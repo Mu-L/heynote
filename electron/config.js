@@ -49,7 +49,7 @@ const schema = {
             "showTabs": {type: "boolean", default: true},
             "showTabsInFullscreen": {type: "boolean", default: true},
             "showLeftPanel": {type: "boolean", default: false},
-            "leftPanelWidth": {type: "integer", default: 220},
+            "leftPanelWidth": {type: "integer", default: 250},
             "bufferTreeOpenFolders": {
                 type: "array",
                 items: {type: "string"},
@@ -135,7 +135,7 @@ const defaults = {
         showLineNumberGutter: true,
         showFoldGutter: true,
         showLeftPanel: false,
-        leftPanelWidth: 220,
+        leftPanelWidth: 250,
         bufferTreeOpenFolders: [],
         autoUpdate: true,
         allowBetaVersions: false,
