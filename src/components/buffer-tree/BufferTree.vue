@@ -66,7 +66,7 @@
             ])
             this.syncFolderOpenState()
             this.$nextTick(() => this.scrollActiveBufferIntoView())
-            if (this.bufferTreeFocusRequestId > 0) {
+            if (this.consumeFocusBufferTreeOnMount()) {
                 this.$nextTick(() => this.focusTree())
             }
             window._heynote_buffer_tree = this
@@ -198,6 +198,7 @@
                 "createDirectory",
                 "moveBuffer",
                 "focusEditor",
+                "consumeFocusBufferTreeOnMount",
             ]),
 
             async refreshDirectoryList() {

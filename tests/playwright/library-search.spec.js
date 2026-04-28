@@ -212,6 +212,22 @@ test.describe("library search", () => {
         await expect(page.getByRole("button", { name: "Buffers" })).toHaveClass(/selected/)
     })
 
+    test("focuses the editor on Escape after an earlier buffer-tree focus request", async ({ page }) => {
+        await page.evaluate(() => {
+            window._heynote_editor.notesStore.openBufferExplorer()
+        })
+        await expect(page.locator(".buffer-tree")).toBeFocused()
+
+        await page.getByRole("button", { name: "Search" }).click()
+        const input = page.locator(".search-container input.search-query")
+        await expect(input).toBeFocused()
+
+        await input.press("Escape")
+        await expect(page.locator(".cm-editor")).toHaveClass(/cm-focused/)
+        await expect(page.locator(".buffer-tree")).toBeVisible()
+        await expect(page.locator(".buffer-tree")).not.toBeFocused()
+    })
+
     test("focuses the editor and switches to the Buffers tab when Escape is pressed on a focused result", async ({ page }) => {
         const input = page.locator(".search-container input.search-query")
         await input.fill("needle")

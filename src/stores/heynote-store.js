@@ -51,6 +51,7 @@ export const useHeynoteStore = defineStore("heynote", {
         hideLeftPanelOnLibrarySearchEscape: false,
         librarySearchFocusRequestId: 0,
         bufferTreeFocusRequestId: 0,
+        focusBufferTreeOnMount: false,
         isFullscreen: false,
         isFocused: true,
         systemLocale: navigator.language,
@@ -91,6 +92,7 @@ export const useHeynoteStore = defineStore("heynote", {
                 return
             }
             this.closeDialog()
+            this.focusBufferTreeOnMount = true
             this.setLeftPanelVisible(true, true)
             this.currentLeftPanel = "buffer-tree"
             this.bufferTreeFocusRequestId++
@@ -113,6 +115,12 @@ export const useHeynoteStore = defineStore("heynote", {
                 this.currentLeftPanel = "buffer-tree"
             }
             this.focusEditor()
+        },
+
+        consumeFocusBufferTreeOnMount() {
+            const focusBufferTree = this.focusBufferTreeOnMount
+            this.focusBufferTreeOnMount = false
+            return focusBufferTree
         },
 
         consumeFocusEditorOnBufferOpen() {
