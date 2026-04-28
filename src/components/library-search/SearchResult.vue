@@ -4,7 +4,7 @@
     import { useHeynoteStore } from "@/src/stores/heynote-store"
     import { useSearchStore } from "@/src/stores/search-store"
 
-    const MATCH_PREVIEW_CONTEXT_LENGTH = 30
+    const MATCH_PREVIEW_CONTEXT_LENGTH = 20
     // Reuse one segmenter across result rows; constructing it per row is expensive
     // when a search streams thousands of matches.
     const graphemeSegmenter = Intl?.Segmenter
