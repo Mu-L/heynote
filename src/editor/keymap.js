@@ -137,6 +137,7 @@ export const DEFAULT_KEYMAP = [
     cmd("Mod-0", "switchToLastTab"),
 
     // sidebar
+    cmd("Mod-Shift-s", "toggleLeftPanel"),
     cmd("Mod-Shift-e", "openBufferExplorer"),
     cmd("Mod-Shift-f", "openLibrarySearch"),
 
