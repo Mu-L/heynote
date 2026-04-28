@@ -5,6 +5,7 @@ export const DEFAULT_LEFT_PANEL_WIDTH = 210
 export const WINDOW_CLOSE_EVENT = "window-close"
 export const WINDOW_FULLSCREEN_STATE = "window-fullscreen-state"
 export const WINDOW_FOCUS_STATE = "window-focus-state"
+export const FOCUS_EDITOR_EVENT = "focus-editor"
 export const OPEN_SETTINGS_EVENT = "open-settings"
 export const SETTINGS_CHANGE_EVENT = "settings-change"
 export const REDO_EVENT = "redo"

@@ -8,7 +8,7 @@ import { useSettingsStore } from "./settings-store"
 import { 
     SCRATCH_FILE_NAME, WINDOW_FULLSCREEN_STATE, WINDOW_FOCUS_STATE, 
     SAVE_TABS_STATE, LOAD_TABS_STATE, CONTEXT_MENU_CLOSED,
-    DEFAULT_LEFT_PANEL_WIDTH,
+    DEFAULT_LEFT_PANEL_WIDTH, FOCUS_EDITOR_EVENT,
 } from "../common/constants"
 
 
@@ -566,6 +566,9 @@ export async function initHeynoteStore() {
     })
     window.heynote.mainProcess.on(WINDOW_FOCUS_STATE, (event, state) => {
         heynoteStore.isFocused = state
+    })
+    window.heynote.mainProcess.on(FOCUS_EDITOR_EVENT, () => {
+        requestAnimationFrame(() => heynoteStore.focusEditor())
     })
     await heynoteStore.updateBuffers()
     heynoteStore.loadTabsState()

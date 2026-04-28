@@ -4,7 +4,7 @@ import { join } from 'node:path'
 import fs from "fs"
 
 import { 
-    WINDOW_CLOSE_EVENT, WINDOW_FULLSCREEN_STATE, WINDOW_FOCUS_STATE, SETTINGS_CHANGE_EVENT,
+    WINDOW_CLOSE_EVENT, WINDOW_FULLSCREEN_STATE, WINDOW_FOCUS_STATE, FOCUS_EDITOR_EVENT, SETTINGS_CHANGE_EVENT,
     TITLE_BAR_BG_LIGHT, TITLE_BAR_BG_LIGHT_BLURRED, TITLE_BAR_BG_DARK, TITLE_BAR_BG_DARK_BLURRED,
     SCRATCH_FILE_NAME, SAVE_TABS_STATE, LOAD_TABS_STATE, CONTEXT_MENU_CLOSED, GET_SYSTEM_LOCALE,
     LIBRARY_SEARCH_START, LIBRARY_SEARCH_CANCEL, LIBRARY_SEARCH_MATCH, LIBRARY_SEARCH_DONE, LIBRARY_SEARCH_ERROR,
@@ -321,6 +321,7 @@ function registerGlobalHotkey() {
                         }
                     }
                 } else {
+                    const wasVisible = win.isVisible()
                     app.focus({steal: true})
                     if (win.isMinimized()) {
                         win.restore()
@@ -330,6 +331,11 @@ function registerGlobalHotkey() {
                     }
 
                     win.focus()
+                    if (!wasVisible) {
+                        // when a window is hidden, it seems like which element is focused is forgotten, so this
+                        // forces focus to the editor (otherwise the sidebar would get focus if it's visible)
+                        win.webContents.send(FOCUS_EDITOR_EVENT)
+                    }
                 }
             })
         } catch (error) {
