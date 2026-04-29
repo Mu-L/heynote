@@ -31,6 +31,7 @@ For performance reasons it's recommended to use this feature if the Scratch buff
 ### Other changes
 
 - Persist the search query between different buffers, and between restarts
+- Add a setting for automatically installing new updates (on by default)
 
 
 ## 2.8.2
