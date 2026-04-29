@@ -13,7 +13,7 @@ import {
 import { menu, getTrayMenu, getEditorContextMenu, getTabContextMenu, getBufferTreeContextMenu, getBufferTreeDirectoryContextMenu, getBufferTreeBackgroundContextMenu, getSpellcheckingContextMenu } from './menu'
 import CONFIG from "../config"
 import { isDev, isLinux, isMac, isWindows } from '../detect-platform';
-import { initializeAutoUpdate, checkForUpdates } from './auto-update';
+import { initializeAutoUpdate, checkForUpdates, updateAutoInstallUpdates } from './auto-update';
 import { fixElectronCors } from './cors';
 import { 
     FileLibrary, 
@@ -606,6 +606,7 @@ ipcMain.handle('settings:set', async (event, settings) => {
     let showInMenuChanged = settings.showInMenu !== CONFIG.get("settings.showInMenu");
     let bufferPathChanged = settings.bufferPath !== CONFIG.get("settings.bufferPath");
     let alwaysOnTopChanged = settings.alwaysOnTop !== CONFIG.get("settings.alwaysOnTop");
+    let autoInstallUpdatesChanged = settings.autoInstallUpdates !== CONFIG.get("settings.autoInstallUpdates");
     CONFIG.set("settings", settings)
 
     win?.webContents.send(SETTINGS_CHANGE_EVENT, settings)
@@ -621,6 +622,9 @@ ipcMain.handle('settings:set', async (event, settings) => {
     }
     if (alwaysOnTopChanged) {
         registerAlwaysOnTop()
+    }
+    if (autoInstallUpdatesChanged) {
+        updateAutoInstallUpdates()
     }
     if (bufferPathChanged) {
         stopCurrentLibrarySearch()
