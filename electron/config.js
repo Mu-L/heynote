@@ -1,5 +1,6 @@
 import { app } from "electron"
 import Store from "electron-store"
+import { DEFAULT_LEFT_PANEL_WIDTH } from "../src/common/constants"
 import { isMac } from "./detect-platform"
 
 // the process.type === "browser" check is needed because both the main and renderer process 
@@ -48,7 +49,15 @@ const schema = {
             "showFoldGutter": {type: "boolean", default:true},
             "showTabs": {type: "boolean", default: true},
             "showTabsInFullscreen": {type: "boolean", default: true},
+            "showLeftPanel": {type: "boolean", default: true},
+            "leftPanelWidth": {type: "integer", default: DEFAULT_LEFT_PANEL_WIDTH},
+            "bufferTreeOpenFolders": {
+                type: "array",
+                items: {type: "string"},
+                default: [],
+            },
             "autoUpdate": {type: "boolean", default: true},
+            "autoInstallUpdates": {type: "boolean", default: true},
             "allowBetaVersions": {type: "boolean", default: false},
             "enableGlobalHotkey": {type: "boolean", default: false},
             "globalHotkey": {type: "string", default: "CmdOrCtrl+Shift+H"},
@@ -83,6 +92,14 @@ const schema = {
                 type: "object",
                 properties: {
                     onlyCurrentBlock: {type: "boolean"},
+                    caseSensitive: {type: "boolean"},
+                    wholeWord: {type: "boolean"},
+                    regexp: {type: "boolean"},
+                },
+            },
+            "librarySearchSettings": {
+                type: "object",
+                properties: {
                     caseSensitive: {type: "boolean"},
                     wholeWord: {type: "boolean"},
                     regexp: {type: "boolean"},
@@ -130,7 +147,11 @@ const defaults = {
         keyBindings: [],
         showLineNumberGutter: true,
         showFoldGutter: true,
+        showLeftPanel: true,
+        leftPanelWidth: DEFAULT_LEFT_PANEL_WIDTH,
+        bufferTreeOpenFolders: [],
         autoUpdate: true,
+        autoInstallUpdates: true,
         allowBetaVersions: false,
         enableGlobalHotkey: false,
         globalHotkey: "CmdOrCtrl+Shift+H",
@@ -144,6 +165,11 @@ const defaults = {
         tabSize: 4,
         searchSettings: {
             onlyCurrentBlock: true,
+            caseSensitive: false,
+            wholeWord: false,
+            regexp: false,
+        },
+        librarySearchSettings: {
             caseSensitive: false,
             wholeWord: false,
             regexp: false,

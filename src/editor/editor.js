@@ -286,6 +286,30 @@ export class HeynoteEditor {
         })
     }
 
+    setCursorPositionAtLineColumn(lineNumber, column=0) {
+        if (!Number.isInteger(lineNumber)) {
+            return
+        }
+
+        const line = this.view.state.doc.line(Math.max(1, Math.min(lineNumber, this.view.state.doc.lines)))
+        const position = Math.max(line.from, Math.min(line.to, line.from + Math.max(0, column)))
+        this.setCursorPosition(position)
+    }
+
+    setSelectionAtLineColumns(lineNumber, fromColumn=0, toColumn=fromColumn) {
+        if (!Number.isInteger(lineNumber)) {
+            return
+        }
+
+        const line = this.view.state.doc.line(Math.max(1, Math.min(lineNumber, this.view.state.doc.lines)))
+        const from = Math.max(line.from, Math.min(line.to, line.from + Math.max(0, fromColumn)))
+        const to = Math.max(line.from, Math.min(line.to, line.from + Math.max(0, toColumn)))
+        this.view.dispatch({
+            selection: {anchor: from, head: to},
+            scrollIntoView: true,
+        })
+    }
+
     focus() {
         this.view.focus()
     }

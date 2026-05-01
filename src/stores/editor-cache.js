@@ -24,7 +24,7 @@ export const useEditorCacheStore = defineStore("editorCache", {
     }),
 
     actions: {
-        _createEditorInstance(path) {
+        _createEditorInstance(path, options = {}) {
             const settingsStore = useSettingsStore()
             const errorStore = useErrorStore()
             let editor
@@ -48,6 +48,7 @@ export const useEditorCacheStore = defineStore("editorCache", {
                     spellcheckEnabled: settingsStore.settings.spellcheckEnabled,
                     showWhitespace: settingsStore.settings.showWhitespace,
                     cursorBlinkRate: settingsStore.settings.cursorBlinkRate,
+                    focus: options.focus !== false,
                 })
             } catch (e) {
                 errorStore.addError("Error! " + e.message)
@@ -57,13 +58,13 @@ export const useEditorCacheStore = defineStore("editorCache", {
             return editor
         },
 
-        getOrCreateEditor(path) {
+        getOrCreateEditor(path, options = {}) {
             if (this.cache[path]) {
                 this.updateLru(path)
                 this.freeStaleEditors()
                 return [this.cache[path], false]
             } else {
-                const editor = this._createEditorInstance(path)
+                const editor = this._createEditorInstance(path, options)
                 this.cache[path] = editor
 
                 // add the editor to the LRU
@@ -86,12 +87,12 @@ export const useEditorCacheStore = defineStore("editorCache", {
             }
         },
 
-        freeEditor(pathToFree) {
+        freeEditor(pathToFree, save = true) {
             //console.log("Freeing:", pathToFree)
             if (!this.cache[pathToFree]) {
                 return
             }
-            this.cache[pathToFree].destroy()
+            this.cache[pathToFree].destroy(save)
             delete this.cache[pathToFree]
             this.lru = this.lru.filter(p => p !== pathToFree)
             delete this.accessTimes[pathToFree]

@@ -4,15 +4,16 @@ import { join } from 'node:path'
 import fs from "fs"
 
 import { 
-    WINDOW_CLOSE_EVENT, WINDOW_FULLSCREEN_STATE, WINDOW_FOCUS_STATE, SETTINGS_CHANGE_EVENT,
+    WINDOW_CLOSE_EVENT, WINDOW_FULLSCREEN_STATE, WINDOW_FOCUS_STATE, FOCUS_EDITOR_EVENT, SETTINGS_CHANGE_EVENT,
     TITLE_BAR_BG_LIGHT, TITLE_BAR_BG_LIGHT_BLURRED, TITLE_BAR_BG_DARK, TITLE_BAR_BG_DARK_BLURRED,
     SCRATCH_FILE_NAME, SAVE_TABS_STATE, LOAD_TABS_STATE, CONTEXT_MENU_CLOSED, GET_SYSTEM_LOCALE,
+    LIBRARY_SEARCH_START, LIBRARY_SEARCH_CANCEL, LIBRARY_SEARCH_MATCH, LIBRARY_SEARCH_DONE, LIBRARY_SEARCH_ERROR,
 } from '@/src/common/constants'
 
-import { menu, getTrayMenu, getEditorContextMenu, getTabContextMenu, getSpellcheckingContextMenu } from './menu'
+import { menu, getTrayMenu, getEditorContextMenu, getTabContextMenu, getBufferTreeContextMenu, getBufferTreeDirectoryContextMenu, getBufferTreeBackgroundContextMenu, getSpellcheckingContextMenu } from './menu'
 import CONFIG from "../config"
 import { isDev, isLinux, isMac, isWindows } from '../detect-platform';
-import { initializeAutoUpdate, checkForUpdates } from './auto-update';
+import { initializeAutoUpdate, checkForUpdates, updateAutoInstallUpdates } from './auto-update';
 import { fixElectronCors } from './cors';
 import { 
     FileLibrary, 
@@ -22,6 +23,7 @@ import {
     NOTES_DIR_NAME 
 } from './file-library';
 import { registerProtocol, registerProtocolBeforeAppReady } from "./protocol.js"
+import { startLibrarySearch } from "./ripgrep.js"
 
 
 // The built directory structure
@@ -62,6 +64,7 @@ Menu.setApplicationMenu(menu)
 
 export let win: BrowserWindow | null = null
 let fileLibrary: FileLibrary | null = null
+let currentLibrarySearch: any = null
 let tray: Tray | null = null;
 let initErrors: string[] = []
 // Here, you can also use other preload
@@ -147,7 +150,7 @@ async function createWindow() {
             contextIsolation: true,
         },
         titleBarStyle: "hidden" as const, // customButtonsOnHover
-        trafficLightPosition: { x: 7, y: 7 },
+        trafficLightPosition: { x: 8, y: 8 },
         ...(!isMac ? {
             titleBarOverlay: {
                 color: nativeTheme.shouldUseDarkColors ? TITLE_BAR_BG_DARK : TITLE_BAR_BG_LIGHT,
@@ -319,6 +322,7 @@ function registerGlobalHotkey() {
                         }
                     }
                 } else {
+                    const wasVisible = win.isVisible()
                     app.focus({steal: true})
                     if (win.isMinimized()) {
                         win.restore()
@@ -328,6 +332,11 @@ function registerGlobalHotkey() {
                     }
 
                     win.focus()
+                    if (!wasVisible) {
+                        // when a window is hidden, it seems like which element is focused is forgotten, so this
+                        // forces focus to the editor (otherwise the sidebar would get focus if it's visible)
+                        win.webContents.send(FOCUS_EDITOR_EVENT)
+                    }
                 }
             })
         } catch (error) {
@@ -500,12 +509,75 @@ ipcMain.handle("showTabContextMenu", (event, tabPath) =>  {
     menu.popup({window: win});
 })
 
+ipcMain.handle("showBufferTreeContextMenu", (event, bufferPath) => {
+    const menu = getBufferTreeContextMenu(win, bufferPath)
+    menu.once("menu-will-close", () => {
+        win?.webContents.send(CONTEXT_MENU_CLOSED)
+    })
+    menu.popup({ window: win })
+})
+
+ipcMain.handle("showBufferTreeDirectoryContextMenu", async (event, directoryPath) => {
+    const isEmptyDirectory = directoryPath ? await fileLibrary?.isDirectoryEmpty(directoryPath) : false
+    const menu = getBufferTreeDirectoryContextMenu(win, directoryPath, !!isEmptyDirectory)
+    menu.once("menu-will-close", () => {
+        win?.webContents.send(CONTEXT_MENU_CLOSED)
+    })
+    menu.popup({ window: win })
+})
+
+ipcMain.handle("showBufferTreeBackgroundContextMenu", () => {
+    const menu = getBufferTreeBackgroundContextMenu(win)
+    menu.once("menu-will-close", () => {
+        win?.webContents.send(CONTEXT_MENU_CLOSED)
+    })
+    menu.popup({ window: win })
+})
+
 ipcMain.handle("showSpellcheckingContextMenu", (event) => {
     // the OS spellchecking API is used on Mac, so it's not possible to select languages
     if (isMac) {
         return
     }
     getSpellcheckingContextMenu(win).popup({window: win})
+})
+
+function stopCurrentLibrarySearch() {
+    if (currentLibrarySearch) {
+        currentLibrarySearch.kill()
+        currentLibrarySearch = null
+    }
+}
+
+ipcMain.handle(LIBRARY_SEARCH_START, (event, options) => {
+    stopCurrentLibrarySearch()
+    if (!fileLibrary) {
+        throw new Error("File library is not initialized")
+    }
+
+    let controller: any = null
+    controller = startLibrarySearch(fileLibrary, options, (payload: any) => {
+        if (payload.type === "match") {
+            event.sender.send(LIBRARY_SEARCH_MATCH, payload)
+        } else if (payload.type === "done") {
+            if (currentLibrarySearch === controller) {
+                currentLibrarySearch = null
+            }
+            event.sender.send(LIBRARY_SEARCH_DONE, payload)
+        } else if (payload.type === "error") {
+            if (currentLibrarySearch === controller) {
+                currentLibrarySearch = null
+            }
+            event.sender.send(LIBRARY_SEARCH_ERROR, payload)
+        }
+    })
+    currentLibrarySearch = controller
+    return { ok: true }
+})
+
+ipcMain.handle(LIBRARY_SEARCH_CANCEL, () => {
+    stopCurrentLibrarySearch()
+    return { ok: true }
 })
 
 // Initialize note/file library
@@ -548,6 +620,7 @@ ipcMain.handle('settings:set', async (event, settings) => {
     let bufferPathChanged = settings.bufferPath !== CONFIG.get("settings.bufferPath");
     let alwaysOnTopChanged = settings.alwaysOnTop !== CONFIG.get("settings.alwaysOnTop");
     let openAtLoginChanged = settings.openAtLogin !== CONFIG.get("settings.openAtLogin");
+    let autoInstallUpdatesChanged = settings.autoInstallUpdates !== CONFIG.get("settings.autoInstallUpdates");
     CONFIG.set("settings", settings)
 
     win?.webContents.send(SETTINGS_CHANGE_EVENT, settings)
@@ -567,7 +640,11 @@ ipcMain.handle('settings:set', async (event, settings) => {
     if (openAtLoginChanged) {
         registerOpenAtLogin()
     }
+    if (autoInstallUpdatesChanged) {
+        updateAutoInstallUpdates()
+    }
     if (bufferPathChanged) {
+        stopCurrentLibrarySearch()
         console.log("bufferPath changed, closing existing file library")
         fileLibrary.close()
         console.log("initializing new file library")

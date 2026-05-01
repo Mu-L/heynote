@@ -1,7 +1,21 @@
-import { SETTINGS_CHANGE_EVENT, OPEN_SETTINGS_EVENT, SAVE_TABS_STATE, LOAD_TABS_STATE, WINDOW_CLOSE_EVENT } from "@/src/common/constants";
+import {
+    SETTINGS_CHANGE_EVENT,
+    OPEN_SETTINGS_EVENT,
+    SAVE_TABS_STATE,
+    LOAD_TABS_STATE,
+    WINDOW_CLOSE_EVENT,
+    DEFAULT_LEFT_PANEL_WIDTH,
+    LIBRARY_SEARCH_CANCEL,
+    LIBRARY_SEARCH_DONE,
+    LIBRARY_SEARCH_ERROR,
+    LIBRARY_SEARCH_MATCH,
+    LIBRARY_SEARCH_START,
+} from "@/src/common/constants";
+import { normalizeLibrarySearchMatch } from "@/src/common/library-search-match";
 import { NoteFormat } from "../src/common/note-format";
 
 const NOTE_KEY_PREFIX = "heynote-library__"
+const DIRECTORY_LIST_KEY = "heynote-library-directories"
 
 const mediaMatch = window.matchMedia('(prefers-color-scheme: dark)')
 let themeCallback = null
@@ -87,11 +101,18 @@ let initialSettings = {
     emacsMetaKey: "alt",
     showLineNumberGutter: true,
     showFoldGutter: true,
+    bufferTreeOpenFolders: [],
     bracketClosing: false,
     keyBindings: [],
     showTabs: true,
     showTabsInFullscreen: true,
+    leftPanelWidth: DEFAULT_LEFT_PANEL_WIDTH,
     cursorBlinkRate: 1000,
+    librarySearchSettings: {
+        caseSensitive: false,
+        wholeWord: false,
+        regexp: false,
+    },
 }
 if (settingsData !== null) {
     initialSettings = Object.assign(initialSettings, JSON.parse(settingsData))
@@ -99,6 +120,34 @@ if (settingsData !== null) {
 
 function noteKey(path) {
     return NOTE_KEY_PREFIX + path
+}
+
+function getStoredDirectories() {
+    try {
+        return JSON.parse(localStorage.getItem(DIRECTORY_LIST_KEY) || "[]")
+    } catch {
+        return []
+    }
+}
+
+function setStoredDirectories(directories) {
+    localStorage.setItem(DIRECTORY_LIST_KEY, JSON.stringify([...new Set(directories)].sort()))
+}
+
+function getDirectoriesFromNotes() {
+    const directories = new Set()
+    for (let key in localStorage) {
+        if (key.startsWith(NOTE_KEY_PREFIX)) {
+            const path = key.slice(NOTE_KEY_PREFIX.length)
+            const parts = path.split("/")
+            if (parts.length > 1) {
+                for (let i = 1; i < parts.length; i++) {
+                    directories.add(parts.slice(0, i).join("/"))
+                }
+            }
+        }
+    }
+    return [...directories]
 }
 
 function getNoteMetadata(content) {
@@ -112,6 +161,21 @@ function getNoteMetadata(content) {
     } catch (e) {
         return {}
     }
+}
+
+function escapeRegExp(text) {
+    return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+}
+
+function createLibrarySearchPattern(options, flags) {
+    const query = options?.query || ""
+    if (options.regexp) {
+        return new RegExp(query, flags)
+    }
+    if (options.wholeWord) {
+        return new RegExp(`\\b${escapeRegExp(query)}\\b`, flags)
+    }
+    return new RegExp(escapeRegExp(query), flags)
 }
 
 // Migrate single buffer (Heynote pre 2.0) in localStorage to notes library
@@ -162,8 +226,36 @@ const Heynote = {
             localStorage.setItem(noteKey(path), content)
         },
 
+        async createDirectory(path) {
+            if (!path) {
+                return
+            }
+            const dirs = getStoredDirectories()
+            dirs.push(path)
+            setStoredDirectories(dirs)
+        },
+
         async delete(path) {
             localStorage.removeItem(noteKey(path))
+        },
+
+        async isDirectoryEmpty(path) {
+            const prefix = path ? path + "/" : ""
+            const hasBuffer = Object.keys(localStorage).some((key) => {
+                if (!key.startsWith(NOTE_KEY_PREFIX)) {
+                    return false
+                }
+                const notePath = key.slice(NOTE_KEY_PREFIX.length)
+                return notePath.startsWith(prefix)
+            })
+            const hasSubDirectory = getStoredDirectories().some((directoryPath) => directoryPath.startsWith(prefix))
+            return !hasBuffer && !hasSubDirectory
+        },
+
+        async deleteDirectory(path) {
+            const directories = getStoredDirectories().filter((directoryPath) => directoryPath !== path)
+            setStoredDirectories(directories)
+            return true
         },
 
         async move(path, newPath) {
@@ -198,19 +290,10 @@ const Heynote = {
         },
 
         async getDirectoryList() {
-            const directories = new Set()
-            for (let key in localStorage) {
-                if (key.startsWith(NOTE_KEY_PREFIX)) {
-                    const path = key.slice(NOTE_KEY_PREFIX.length)
-                    const parts = path.split("/")
-                    if (parts.length > 1) {
-                        for (let i = 1; i < parts.length; i++) {
-                            directories.add(parts.slice(0, i).join("/"))
-                        }
-                    }
-                }
-            }
-            //console.log("directories", directories)
+            const directories = new Set([
+                ...getDirectoriesFromNotes(),
+                ...getStoredDirectories(),
+            ])
             return [...directories]
         },
 
@@ -253,6 +336,11 @@ const Heynote = {
                         return JSON.parse(tabsState)
                     }
                     return undefined
+                case LIBRARY_SEARCH_START:
+                    searchLocalLibrary(args[0])
+                    return { ok: true }
+                case LIBRARY_SEARCH_CANCEL:
+                    return { ok: true }
             }
         }
     },
@@ -311,6 +399,66 @@ const Heynote = {
     async getSystemLocale() {
         return navigator.language
     },
+}
+
+function searchLocalLibrary(options) {
+    const query = options?.query || ""
+    if (query.length <= 2) {
+        ipcRenderer.send(LIBRARY_SEARCH_DONE, { searchId: options?.searchId })
+        return
+    }
+    const flags = options.caseSensitive ? "g" : "gi"
+    let pattern
+    try {
+        pattern = createLibrarySearchPattern(options, flags)
+    } catch (error) {
+        ipcRenderer.send(LIBRARY_SEARCH_ERROR, {
+            searchId: options.searchId,
+            message: `Invalid regular expression: ${error.message}`,
+        })
+        return
+    }
+    for (let [key, content] of Object.entries(localStorage)) {
+        if (!key.startsWith(NOTE_KEY_PREFIX)) {
+            continue
+        }
+        const buffer = key.slice(NOTE_KEY_PREFIX.length)
+        const lines = content.split(/\r?\n/)
+        lines.forEach((line, index) => {
+            const submatches = []
+            pattern.lastIndex = 0
+            let match = pattern.exec(line)
+            while (match) {
+                submatches.push({
+                    start: match.index,
+                    end: match.index + match[0].length,
+                    text: match[0],
+                })
+                if (match[0].length === 0) {
+                    pattern.lastIndex++
+                }
+                match = pattern.exec(line)
+            }
+            if (submatches.length === 0) {
+                return
+            }
+            const normalizedMatch = normalizeLibrarySearchMatch({
+                line,
+                lineNumber: index + 1,
+                submatches,
+            })
+            if (!normalizedMatch) {
+                return
+            }
+            ipcRenderer.send(LIBRARY_SEARCH_MATCH, {
+                searchId: options.searchId,
+                type: "match",
+                buffer,
+                ...normalizedMatch,
+            })
+        })
+    }
+    ipcRenderer.send(LIBRARY_SEARCH_DONE, { searchId: options.searchId })
 }
 
 window.addEventListener("beforeunload", () => ipcRenderer.send(WINDOW_CLOSE_EVENT))
