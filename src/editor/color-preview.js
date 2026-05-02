@@ -1,6 +1,8 @@
 import { RangeSetBuilder } from "@codemirror/state"
 import { Decoration, ViewPlugin, WidgetType } from "@codemirror/view"
 
+import { getNoteBlockFromPos } from "./block/block"
+
 
 const colorStartBoundary = String.raw`(^|[^\w#])` // Before the color must be start of text, or not \w / #.
 const colorEndBoundary = String.raw`(?!\w)` // After the color must not be \w.
@@ -17,6 +19,8 @@ const colorCandidateRegex = new RegExp(
     "gi",
 )
 
+const previewLanguages = new Set(["css", "html", "javascript", "typescript", "vue", "tsx"])
+
 function isValidCssColor(color) {
     if (window.CSS?.supports?.("color", color)) {
         return true
@@ -26,6 +30,11 @@ function isValidCssColor(color) {
     const testElement = document.createElement("span")
     testElement.style.color = color
     return testElement.style.color !== ""
+}
+
+function shouldPreviewColor(state, pos) {
+    const block = getNoteBlockFromPos(state, pos)
+    return previewLanguages.has(block?.language?.name)
 }
 
 class ColorPreviewWidget extends WidgetType {
@@ -66,6 +75,10 @@ function buildColorPreviewDecorations(view) {
             }
 
             const pos = from + match.index + match[1].length
+            if (!shouldPreviewColor(view.state, pos)) {
+                continue
+            }
+
             builder.add(pos, pos, Decoration.widget({
                 widget: new ColorPreviewWidget(color),
                 side: -1,
