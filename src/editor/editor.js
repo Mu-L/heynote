@@ -24,6 +24,7 @@ import { autoSaveContent } from "./save.js"
 import { imageExtension } from "./image/image.js"
 import { todoCheckboxPlugin} from "./todo-checkbox.ts"
 import { links } from "./links.js"
+import { colorPreviewExtension } from "./color-preview.js"
 import { indentation } from "./indentation.js"
 import { HEYNOTE_COMMANDS } from "./commands.js";
 import { NoteFormat } from "../common/note-format.js"
@@ -134,6 +135,7 @@ export class HeynoteEditor {
                 Prec.highest(cmKeymap.of(markdownKeymap)),
 
                 links,
+                colorPreviewExtension,
 
                 this.spellcheckCompartment.of(spellcheckConfig(this.spellcheckEnabled)),
                 this.highlightWhitespaceCompartment.of(showWhitespace ? highlightWhitespace() : [])
