@@ -64,6 +64,7 @@ export class HeynoteEditor {
         keyBindings,
         spellcheckEnabled=false,
         showWhitespace=false,
+        colorPreviewEnabled=true,
         cursorBlinkRate=1000,
     }) {
         this.element = element
@@ -77,6 +78,7 @@ export class HeynoteEditor {
         this.closeBracketsCompartment = new Compartment
         this.indentUnitCompartment = new Compartment
         this.highlightWhitespaceCompartment = new Compartment
+        this.colorPreviewCompartment = new Compartment
         this.cursorBlinkCompartment = new Compartment
         this.deselectOnCopy = keymap === "emacs"
         this.emacsMetaKey = emacsMetaKey
@@ -135,7 +137,7 @@ export class HeynoteEditor {
                 Prec.highest(cmKeymap.of(markdownKeymap)),
 
                 links,
-                colorPreviewExtension,
+                this.colorPreviewCompartment.of(colorPreviewEnabled ? colorPreviewExtension : []),
 
                 this.spellcheckCompartment.of(spellcheckConfig(this.spellcheckEnabled)),
                 this.highlightWhitespaceCompartment.of(showWhitespace ? highlightWhitespace() : [])
@@ -353,6 +355,12 @@ export class HeynoteEditor {
     setShowWhitespace(enabled) {
         this.view.dispatch({
             effects: this.highlightWhitespaceCompartment.reconfigure(enabled ? highlightWhitespace() : []),
+        })
+    }
+
+    setColorPreviewEnabled(enabled) {
+        this.view.dispatch({
+            effects: this.colorPreviewCompartment.reconfigure(enabled ? colorPreviewExtension : []),
         })
     }
 
