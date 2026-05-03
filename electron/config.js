@@ -1,5 +1,6 @@
 import { app } from "electron"
 import Store from "electron-store"
+import { generateClientId } from "../src/common/client-id"
 import { DEFAULT_LEFT_PANEL_WIDTH } from "../src/common/constants"
 import { isMac } from "./detect-platform"
 
@@ -13,6 +14,8 @@ const isDev = !!process.env.VITE_DEV_SERVER_URL
 
 const schema = {
     additionalProperties: false,
+
+    clientId: {type: "string"},
 
     windowConfig: {
         type: "object",
@@ -72,6 +75,7 @@ const schema = {
             "defaultBlockLanguageAutoDetect": {type: "boolean"},
             "spellcheckEnabled": {type: "boolean", default:false},
             "showWhitespace": {type:"boolean", default:false},
+            "colorPreviewEnabled": {type: "boolean", default: true},
             "cursorBlinkRate": {type: "integer", default: 1000},
             "drawSettings": {
                 type: "object",
@@ -172,9 +176,16 @@ const defaults = {
         },
         spellcheckEnabled: false,
         showWhitespace: false,
+        colorPreviewEnabled: true,
         cursorBlinkRate: 1000,
     },
     theme: "system",
 }
 
-export default new Store({schema, defaults, name: isDev ? "config-dev" : "config"})
+const config = new Store({schema, defaults, name: isDev ? "config-dev" : "config"})
+
+if (!config.get("clientId")) {
+    config.set("clientId", generateClientId())
+}
+
+export default config
