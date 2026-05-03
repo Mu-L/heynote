@@ -76,6 +76,7 @@ const schema = {
             "defaultBlockLanguageAutoDetect": {type: "boolean"},
             "spellcheckEnabled": {type: "boolean", default:false},
             "showWhitespace": {type:"boolean", default:false},
+            "colorPreviewEnabled": {type: "boolean", default: true},
             "cursorBlinkRate": {type: "integer", default: 1000},
             "drawSettings": {
                 type: "object",
@@ -179,6 +180,7 @@ const defaults = {
         },
         spellcheckEnabled: false,
         showWhitespace: false,
+        colorPreviewEnabled: true,
         cursorBlinkRate: 1000,
     },
     theme: "system",
