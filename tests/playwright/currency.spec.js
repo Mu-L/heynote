@@ -25,3 +25,19 @@ test('currency request includes client headers', async ({ page }) => {
     expect(headers['x-client-version']).toBe(`${pkg.version}-web`)
     await expect.poll(async () => page.evaluate(() => localStorage.getItem('clientId'))).toBe(headers['x-client-id'])
 })
+
+test('currency request failure does not surface as a page error', async ({ page }) => {
+    const pageErrors = []
+    page.on('pageerror', (error) => {
+        pageErrors.push(`[${error.name}] ${error.message}`)
+    })
+
+    await page.route('https://currencies.heynote.com/rates.json', async (route) => {
+        await route.abort()
+    })
+
+    await page.goto(process.env.HEYNOTE_TEST_BASE_URL || '/')
+    await expect(page).toHaveTitle(/Heynote/)
+    await expect(page.locator(".cm-editor")).toBeVisible()
+    expect(pageErrors).toStrictEqual([])
+})
