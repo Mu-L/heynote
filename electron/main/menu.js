@@ -215,12 +215,12 @@ const template = [
 export const menu = Menu.buildFromTemplate(template)
 
 
-export function getTrayMenu(win) {
+export function getTrayMenu(win, showWindow) {
     return Menu.buildFromTemplate([
         {
             label: 'Open Heynote',
             click: () => {
-                win.show()
+                showWindow()
             },
         },
         { type: 'separator' },
