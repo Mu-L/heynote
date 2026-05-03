@@ -81,7 +81,7 @@ function buildColorPreviewDecorations(view) {
 
             builder.add(pos, pos, Decoration.widget({
                 widget: new ColorPreviewWidget(color),
-                side: -1,
+                side: 1,
             }))
         }
     }
