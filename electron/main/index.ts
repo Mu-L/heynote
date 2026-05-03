@@ -87,6 +87,30 @@ export function quit() {
     app.quit()
 }
 
+function showWindow() {
+    if (!win) {
+        return
+    }
+    const wasVisible = win.isVisible()
+    if (win.isMinimized()) {
+        win.restore()
+    }
+    if (!wasVisible) {
+        // hide()+show() forces the window to the top of the window stack on
+        // Linux WMs that don't raise windows on a bare show() call
+        if (isLinux) {
+            win.hide()
+        }
+        win.show()
+    }
+    app.focus({ steal: true })
+    win.focus()
+    if (!wasVisible) {
+        // when a window is hidden, it seems like which element is focused is forgotten, so this
+        // forces focus to the editor (otherwise the sidebar would get focus if it's visible)
+        win.webContents.send(FOCUS_EDITOR_EVENT)
+    }
+}
 
 async function createWindow() {
     // read any stored window settings from config, or use defaults
@@ -116,7 +140,7 @@ async function createWindow() {
         if (windowConfig.height > area.height) {
             windowConfig.height = area.height
         }
-        if (windowConfig.x + windowConfig.width > (area.width + area.x) || windowConfig.y + windowConfig.height > (area.height + area.y)) {
+        if (windowConfig.x + windowConfig.width > area.x + area.width || windowConfig.y + windowConfig.height > area.y + area.height) {
             // window is outside of screen, reset position
             windowConfig.x = undefined
             windowConfig.y = undefined
@@ -280,18 +304,25 @@ function createTray() {
     }
     tray = new Tray(img);
     tray.setToolTip("Heynote");
-    const menu = getTrayMenu(win)
-    if (isMac) {
-        // using tray.setContextMenu() on macOS will open the menu on left-click, so instead we'll
-        // manually bind the right-click event to open the menu
+    const menu = getTrayMenu(win, showWindow)
+    if (isLinux) {
+        // Linux tray implementations don't reliably emit right-click events, so
+        // setContextMenu is needed for the context menu to be accessible.
+        tray.setContextMenu(menu)
+    } else {
+        // On macOS and Windows: right-click opens the menu via popUpContextMenu.
+        // (setContextMenu() would intercept left-click on Windows, so we avoid it)
         tray.addListener("right-click", () => {
             tray?.popUpContextMenu(menu)
         })
-    } else {
-        tray.setContextMenu(menu);
     }
+    // Left-click toggles the window on all platforms where click events are emitted
     tray.addListener("click", () => {
-        win?.show()
+        if (win?.isVisible()) {
+            win.hide()
+        } else {
+            showWindow()
+        }
     })
 }
 
@@ -322,21 +353,7 @@ function registerGlobalHotkey() {
                         }
                     }
                 } else {
-                    const wasVisible = win.isVisible()
-                    app.focus({steal: true})
-                    if (win.isMinimized()) {
-                        win.restore()
-                    }
-                    if (!win.isVisible()) {
-                        win.show()
-                    }
-
-                    win.focus()
-                    if (!wasVisible) {
-                        // when a window is hidden, it seems like which element is focused is forgotten, so this
-                        // forces focus to the editor (otherwise the sidebar would get focus if it's visible)
-                        win.webContents.send(FOCUS_EDITOR_EVENT)
-                    }
+                    showWindow()
                 }
             })
         } catch (error) {
@@ -449,21 +466,12 @@ app.on('window-all-closed', () => {
 })
 
 app.on('second-instance', () => {
-    if (win) {
-        // Focus on the main window if the user tried to open another
-        if (win.isMinimized()) win.restore()
-        win.focus()
-    }
+    showWindow()
 })
 
-app.on('activate', (event, hasVisibleWindows) => {
-    const allWindows = BrowserWindow.getAllWindows()
-    if (allWindows.length) {
-        allWindows[0].focus()
-        // show the window if it's hidden (e.g. the window was closed with "show in menu bar" setting turned on)
-        if (!allWindows[0].isVisible()) {
-            allWindows[0].show()
-        }
+app.on('activate', () => {
+    if (win) {
+        showWindow()
     } else {
         createWindow()
     }
