@@ -34,6 +34,7 @@ For performance reasons it's recommended to use this feature if the Scratch buff
 - Add a setting for automatically installing new updates (on by default)
 - Add version and client id headers when fetching currency exchange rates
 - Add inline color preview for hex / hsl / rgb values for supported languages (CSS, HTML, JS/TS, Vue, TSX)
+- Improve window show/focus behavior when restoring from tray
 
 
 ## 2.8.2
