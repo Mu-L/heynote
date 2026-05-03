@@ -42,6 +42,7 @@
                 showLineNumberGutter: this.initialSettings.showLineNumberGutter,
                 showFoldGutter: this.initialSettings.showFoldGutter,
                 showWhitespace: this.initialSettings.showWhitespace,
+                colorPreviewEnabled: this.initialSettings.colorPreviewEnabled ?? true,
                 showTabs: this.initialSettings.showTabs,
                 showTabsInFullscreen: this.initialSettings.showTabsInFullscreen,
                 showLeftPanel: this.initialSettings.showLeftPanel ?? true,
@@ -124,6 +125,7 @@
                     showLineNumberGutter: this.showLineNumberGutter,
                     showFoldGutter: this.showFoldGutter,
                     showWhitespace: this.showWhitespace,
+                    colorPreviewEnabled: this.colorPreviewEnabled,
                     showTabs: this.showTabs,
                     showTabsInFullscreen: this.showTabsInFullscreen,
                     showLeftPanel: this.showLeftPanel,
@@ -359,7 +361,7 @@
                         </div>
                         <div class="row">
                             <div class="entry">
-                                <h2>Gutters & Whitespace</h2>
+                                <h2>Editor Display</h2>
                                 <label>
                                     <input 
                                         type="checkbox" 
@@ -385,6 +387,15 @@
                                         @change="updateSettings"
                                     />
                                     Show white-space
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        v-model="colorPreviewEnabled"
+                                        @change="updateSettings"
+                                    />
+                                    Show color previews (CSS, HTML, JavaScript, TypeScript, Vue, TSX)
                                 </label>
                             </div>
                         </div>
