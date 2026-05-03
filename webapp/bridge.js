@@ -11,11 +11,14 @@ import {
     LIBRARY_SEARCH_MATCH,
     LIBRARY_SEARCH_START,
 } from "@/src/common/constants";
+import { generateClientId } from "@/src/common/client-id";
+import { CURRENCY_RATES_URL, getCurrencyFetchOptions } from "@/src/common/currency-request";
 import { normalizeLibrarySearchMatch } from "@/src/common/library-search-match";
 import { NoteFormat } from "../src/common/note-format";
 
 const NOTE_KEY_PREFIX = "heynote-library__"
 const DIRECTORY_LIST_KEY = "heynote-library-directories"
+const CLIENT_ID_KEY = "clientId"
 
 const mediaMatch = window.matchMedia('(prefers-color-scheme: dark)')
 let themeCallback = null
@@ -63,6 +66,15 @@ if (__TESTS__ && window.navigator.platform.indexOf("Mac") !== -1) {
     }
 }
 platform.isWebApp = true
+
+function getClientId() {
+    let clientId = localStorage.getItem(CLIENT_ID_KEY)
+    if (!clientId) {
+        clientId = generateClientId()
+        localStorage.setItem(CLIENT_ID_KEY, clientId)
+    }
+    return clientId
+}
 
 
 class IpcRenderer {
@@ -379,7 +391,10 @@ const Heynote = {
         if (currencyData !== null) {
             return currencyData
         }
-        const response = await fetch("https://currencies.heynote.com/rates.json", {cache: "no-cache"})
+        const response = await fetch(
+            CURRENCY_RATES_URL,
+            getCurrencyFetchOptions(getClientId(), `${__APP_VERSION__}-web`),
+        )
         currencyData = JSON.parse(await response.text())
         return currencyData
     },

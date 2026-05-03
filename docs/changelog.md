@@ -32,6 +32,7 @@ For performance reasons it's recommended to use this feature if the Scratch buff
 
 - Persist the search query between different buffers, and between restarts
 - Add a setting for automatically installing new updates (on by default)
+- Add version and client id headers when fetching currency exchange rates
 
 
 ## 2.8.2

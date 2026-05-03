@@ -121,6 +121,9 @@ test.describe('electron app', { tag: "@e2e" }, () => {
             return await fs.stat(configPath).then(() => true).catch(() => false)
         }).toBe(true)
 
+        const config = JSON.parse(await fs.readFile(configPath, 'utf8'))
+        expect(config.clientId).toMatch(/^[0-9A-Za-z]{22}$/)
+
         expect(userData).toBe(userDataDir)
         expect(configPath.startsWith(userDataDir)).toBe(true)
         expect(notesDir.startsWith(userDataDir)).toBe(true)
