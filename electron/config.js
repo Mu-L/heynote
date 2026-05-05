@@ -1,6 +1,6 @@
 import { app } from "electron"
 import Store from "electron-store"
-import { generateClientId } from "../src/common/client-id"
+import { generateClientId, TEST_CLIENT_ID } from "../src/common/client-id"
 import { DEFAULT_LEFT_PANEL_WIDTH } from "../src/common/constants"
 import { isMac } from "./detect-platform"
 
@@ -189,7 +189,9 @@ const defaults = {
 
 const config = new Store({schema, defaults, name: isDev ? "config-dev" : "config"})
 
-if (!config.get("clientId")) {
+if (process.env.HEYNOTE_TESTS) {
+    config.set("clientId", TEST_CLIENT_ID)
+} else if (!config.get("clientId")) {
     config.set("clientId", generateClientId())
 }
 

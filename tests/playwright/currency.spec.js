@@ -21,7 +21,7 @@ test('currency request includes client headers', async ({ page }) => {
     await expect.poll(() => currencyRequest).not.toBeNull()
 
     const headers = currencyRequest.headers()
-    expect(headers['x-client-id']).toMatch(/^[0-9A-Za-z]{22}$/)
+    expect(headers['x-client-id']).toBe('testing')
     expect(headers['x-client-version']).toBe(`${pkg.version}-web`)
     await expect.poll(async () => page.evaluate(() => localStorage.getItem('clientId'))).toBe(headers['x-client-id'])
 })
