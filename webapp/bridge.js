@@ -119,6 +119,7 @@ let initialSettings = {
     showTabs: true,
     showTabsInFullscreen: true,
     leftPanelWidth: DEFAULT_LEFT_PANEL_WIDTH,
+    startHidden: false,
     colorPreviewEnabled: true,
     cursorBlinkRate: 1000,
     librarySearchSettings: {

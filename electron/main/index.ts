@@ -134,6 +134,10 @@ async function createWindow() {
     const windowWasMaximized = CONFIG.get("windowConfig.isMaximized", false) as boolean
     const windowWasFullScreen = CONFIG.get("windowConfig.isFullScreen", false) as boolean
     const windowWasVisibleOnQuit = CONFIG.get("windowConfig.visibleOnQuit", true)
+    const startHidden = CONFIG.get("settings.startHidden", false) as boolean
+    const hideOnStartup = startHidden || (wasOpenedAtLogin() && !windowWasVisibleOnQuit)
+    let currentWindowIsMaximized = windowWasMaximized
+    let currentWindowIsFullScreen = windowWasFullScreen
 
     // windowBounds.x and windowBounds.y will be undefined when config file is missing, e.g. first time run
     if (windowBounds.x !== undefined && windowBounds.y !== undefined) {
@@ -175,6 +179,11 @@ async function createWindow() {
         icon,
         backgroundColor: nativeTheme.shouldUseDarkColors ? '#262B37' : '#FFFFFF',
         accentColor: undefined,
+        show: !hideOnStartup,
+        // We can't set fullscreen:true when hideOnStartup is true, because it will cancel out the show:false option
+        // instead we fullscreen the window the first time it is shown
+        // (see https://github.com/electron/electron/issues/42165)
+        ...(!hideOnStartup && windowWasFullScreen ? { fullscreen: true } : {}),
         //titleBarStyle: 'customButtonsOnHover',
         autoHideMenuBar: true,
         webPreferences: {
@@ -195,24 +204,20 @@ async function createWindow() {
         } : {})
     }, windowBounds))
 
-    // maximize window if it was maximized last time
-    if (windowWasMaximized) {
-        win.maximize()
-    }
-    if (windowWasFullScreen) {
-        win.setFullScreen(true)
-    }
-    if (wasOpenedAtLogin() && !windowWasVisibleOnQuit) {
-        win.hide()
-    }
-
-
-    // when app gets focused, show the window if it's hidden
-    // without this, there are cases when Cmd-Tabbing to Heynote won't show the window
-    app.on("did-become-active", (event) => {
-        if (!win.isVisible()) {
-            win.show()
-        }
+    win.on("maximize", () => {
+        currentWindowIsMaximized = true
+    })
+    win.on("unmaximize", () => {
+        currentWindowIsMaximized = false
+    })
+    
+    win.on("enter-full-screen", () => {
+        currentWindowIsFullScreen = true
+        win?.webContents.send(WINDOW_FULLSCREEN_STATE, true)
+    })
+    win.on("leave-full-screen", () => {
+        currentWindowIsFullScreen = false
+        win?.webContents.send(WINDOW_FULLSCREEN_STATE, false)
     })
 
     win.on("close", (event) => {
@@ -225,8 +230,8 @@ async function createWindow() {
         // Save window config
         CONFIG.set("windowConfig", {
             ...win.getNormalBounds(),
-            isMaximized: win.isMaximized(),
-            isFullScreen: win.isFullScreen(),
+            isMaximized: currentWindowIsMaximized,
+            isFullScreen: currentWindowIsFullScreen,
             visibleOnQuit: win.isVisible(),
         })
 
@@ -249,12 +254,29 @@ async function createWindow() {
             win.setSkipTaskbar(false)
         }
     })
-    
-    win.on("enter-full-screen", () => {
-        win?.webContents.send(WINDOW_FULLSCREEN_STATE, true)
-    })
-    win.on("leave-full-screen", () => {
-        win?.webContents.send(WINDOW_FULLSCREEN_STATE, false)
+
+    if (hideOnStartup) {
+        win.once("show", () => {
+            if (windowWasMaximized) {
+                win?.maximize()
+            }
+            if (windowWasFullScreen && !win?.isFullScreen()) {
+                win?.setFullScreen(true)
+            }
+        })
+    }
+    // maximize window if it was maximized last time
+    if (windowWasMaximized && !hideOnStartup) {
+        win.maximize()
+    }
+
+
+    // when app gets focused, show the window if it's hidden
+    // without this, there are cases when Cmd-Tabbing to Heynote won't show the window
+    app.on("did-become-active", (event) => {
+        if (!win.isVisible()) {
+            win.show()
+        }
     })
 
     win.on("focus", () => {
@@ -517,7 +539,7 @@ ipcMain.handle("showEditorContextMenu", () =>  {
 })
 
 ipcMain.handle("showMainMenu", (event, x, y) =>  {
-    console.log("showMainMenu", x , y)
+    //console.log("showMainMenu", x , y)
     menu.popup({
         window: win,
         x: x,

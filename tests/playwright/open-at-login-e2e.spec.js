@@ -166,6 +166,258 @@ test.describe('openAtLogin e2e', { tag: "@e2e" }, () => {
         }).toBe(true)
     })
 
+    test('Toggle Start hidden updates config file', async () => {
+        await page.locator("css=.status-block.settings").click()
+        await expect(page.locator("css=.overlay .settings .dialog")).toBeVisible()
+        const checkbox = page.getByLabel("Start hidden")
+        await checkbox.click()
+        await expect(checkbox).toBeChecked()
+
+        const configPath = path.join(userDataDir, 'config.json')
+        await expect.poll(async () => {
+            try {
+                const raw = await fs.readFile(configPath, 'utf-8')
+                const config = JSON.parse(raw)
+                return config.settings?.startHidden
+            } catch {
+                return undefined
+            }
+        }).toBe(true)
+    })
+
+    test('Start hidden hides the window on startup', async () => {
+        await closeElectronApp(electronApp)
+        electronApp = null
+
+        const configPath = path.join(userDataDir, 'config.json')
+        await fs.writeFile(configPath, JSON.stringify({
+            settings: {
+                startHidden: true,
+            },
+        }))
+
+        electronApp = await electron.launch({
+            args: ['--no-sandbox', 'tests/playwright/electron-runner.cjs'],
+            env: {
+                ...process.env,
+                HEYNOTE_TEST_USER_DATA_DIR: userDataDir,
+            },
+        })
+
+        page = await electronApp.firstWindow()
+        await page.waitForLoadState('domcontentloaded')
+
+        await expect.poll(async () => {
+            return await electronApp.evaluate(({ BrowserWindow }) => {
+                return BrowserWindow.getAllWindows()[0]?.isVisible()
+            })
+        }).toBe(false)
+    })
+
+    test('Start hidden preserves saved fullscreen state when quitting while hidden', async () => {
+        await closeElectronApp(electronApp)
+        electronApp = null
+
+        const configPath = path.join(userDataDir, 'config.json')
+        await fs.writeFile(configPath, JSON.stringify({
+            settings: {
+                startHidden: true,
+            },
+            windowConfig: {
+                isFullScreen: true,
+            },
+        }))
+
+        electronApp = await electron.launch({
+            args: ['--no-sandbox', 'tests/playwright/electron-runner.cjs'],
+            env: {
+                ...process.env,
+                HEYNOTE_TEST_USER_DATA_DIR: userDataDir,
+            },
+        })
+
+        page = await electronApp.firstWindow()
+        await page.waitForLoadState('domcontentloaded')
+
+        await expect.poll(async () => {
+            return await electronApp.evaluate(({ BrowserWindow }) => {
+                return BrowserWindow.getAllWindows()[0]?.isVisible()
+            })
+        }).toBe(false)
+
+        await closeElectronApp(electronApp)
+        electronApp = null
+
+        await expect.poll(async () => {
+            const raw = await fs.readFile(configPath, 'utf-8')
+            const config = JSON.parse(raw)
+            return config.windowConfig?.isFullScreen
+        }).toBe(true)
+    })
+
+    test('Start hidden preserves saved maximized state when quitting while hidden', async () => {
+        await closeElectronApp(electronApp)
+        electronApp = null
+
+        const configPath = path.join(userDataDir, 'config.json')
+        await fs.writeFile(configPath, JSON.stringify({
+            settings: {
+                startHidden: true,
+            },
+            windowConfig: {
+                isMaximized: true,
+            },
+        }))
+
+        electronApp = await electron.launch({
+            args: ['--no-sandbox', 'tests/playwright/electron-runner.cjs'],
+            env: {
+                ...process.env,
+                HEYNOTE_TEST_USER_DATA_DIR: userDataDir,
+            },
+        })
+
+        page = await electronApp.firstWindow()
+        await page.waitForLoadState('domcontentloaded')
+
+        await expect.poll(async () => {
+            return await electronApp.evaluate(({ BrowserWindow }) => {
+                return BrowserWindow.getAllWindows()[0]?.isVisible()
+            })
+        }).toBe(false)
+
+        await closeElectronApp(electronApp)
+        electronApp = null
+
+        await expect.poll(async () => {
+            const raw = await fs.readFile(configPath, 'utf-8')
+            const config = JSON.parse(raw)
+            return config.windowConfig?.isMaximized
+        }).toBe(true)
+    })
+
+    test('Start hidden saves updated maximized state after showing and hiding again', async () => {
+        await closeElectronApp(electronApp)
+        electronApp = null
+
+        const configPath = path.join(userDataDir, 'config.json')
+        await fs.writeFile(configPath, JSON.stringify({
+            settings: {
+                startHidden: true,
+            },
+            windowConfig: {
+                isMaximized: true,
+            },
+        }))
+
+        electronApp = await electron.launch({
+            args: ['--no-sandbox', 'tests/playwright/electron-runner.cjs'],
+            env: {
+                ...process.env,
+                HEYNOTE_TEST_USER_DATA_DIR: userDataDir,
+            },
+        })
+
+        page = await electronApp.firstWindow()
+        await page.waitForLoadState('domcontentloaded')
+
+        await electronApp.evaluate(({ BrowserWindow }) => {
+            BrowserWindow.getAllWindows()[0].show()
+        })
+        await expect.poll(async () => {
+            return await electronApp.evaluate(({ BrowserWindow }) => {
+                return BrowserWindow.getAllWindows()[0]?.isVisible()
+            })
+        }).toBe(true)
+        await expect.poll(async () => {
+            return await electronApp.evaluate(({ BrowserWindow }) => {
+                return BrowserWindow.getAllWindows()[0]?.isMaximized()
+            })
+        }).toBe(true)
+
+        await electronApp.evaluate(({ BrowserWindow }) => {
+            BrowserWindow.getAllWindows()[0].unmaximize()
+        })
+        await expect.poll(async () => {
+            return await electronApp.evaluate(({ BrowserWindow }) => {
+                return BrowserWindow.getAllWindows()[0]?.isMaximized()
+            })
+        }).toBe(false)
+
+        await electronApp.evaluate(({ BrowserWindow }) => {
+            BrowserWindow.getAllWindows()[0].hide()
+        })
+        await closeElectronApp(electronApp)
+        electronApp = null
+
+        await expect.poll(async () => {
+            const raw = await fs.readFile(configPath, 'utf-8')
+            const config = JSON.parse(raw)
+            return config.windowConfig?.isMaximized
+        }).toBe(false)
+    })
+
+    test('Start hidden saves updated fullscreen state after showing and hiding again', async () => {
+        await closeElectronApp(electronApp)
+        electronApp = null
+
+        const configPath = path.join(userDataDir, 'config.json')
+        await fs.writeFile(configPath, JSON.stringify({
+            settings: {
+                startHidden: true,
+            },
+            windowConfig: {
+                isFullScreen: true,
+            },
+        }))
+
+        electronApp = await electron.launch({
+            args: ['--no-sandbox', 'tests/playwright/electron-runner.cjs'],
+            env: {
+                ...process.env,
+                HEYNOTE_TEST_USER_DATA_DIR: userDataDir,
+            },
+        })
+
+        page = await electronApp.firstWindow()
+        await page.waitForLoadState('domcontentloaded')
+
+        await electronApp.evaluate(({ BrowserWindow }) => {
+            BrowserWindow.getAllWindows()[0].show()
+        })
+        await expect.poll(async () => {
+            return await electronApp.evaluate(({ BrowserWindow }) => {
+                return BrowserWindow.getAllWindows()[0]?.isVisible()
+            })
+        }).toBe(true)
+        await expect.poll(async () => {
+            return await electronApp.evaluate(({ BrowserWindow }) => {
+                return BrowserWindow.getAllWindows()[0]?.isFullScreen()
+            })
+        }).toBe(true)
+
+        await electronApp.evaluate(({ BrowserWindow }) => {
+            BrowserWindow.getAllWindows()[0].setFullScreen(false)
+        })
+        await expect.poll(async () => {
+            return await electronApp.evaluate(({ BrowserWindow }) => {
+                return BrowserWindow.getAllWindows()[0]?.isFullScreen()
+            })
+        }).toBe(false)
+
+        await electronApp.evaluate(({ BrowserWindow }) => {
+            BrowserWindow.getAllWindows()[0].hide()
+        })
+        await closeElectronApp(electronApp)
+        electronApp = null
+
+        await expect.poll(async () => {
+            const raw = await fs.readFile(configPath, 'utf-8')
+            const config = JSON.parse(raw)
+            return config.windowConfig?.isFullScreen
+        }).toBe(false)
+    })
+
     test('Toggle Launch at login updates Electron loginItemSettings', async () => {
         test.skip(!supportsOpenAtLogin, 'Launch at login is supported only on macOS/Windows')
 
