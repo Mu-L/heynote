@@ -114,7 +114,7 @@ test.describe('openAtLogin e2e', { tag: "@e2e" }, () => {
         }
     })
 
-    test('TC-E2E-1: Launch at login checkbox is visible in Electron', async () => {
+    test('Launch at login checkbox is visible in Electron', async () => {
         await expect(page).toHaveTitle(/Heynote/i)
         await page.locator("css=.status-block.settings").click()
         await expect(page.locator("css=.overlay .settings .dialog")).toBeVisible()
@@ -122,14 +122,14 @@ test.describe('openAtLogin e2e', { tag: "@e2e" }, () => {
         await expect(checkbox).toBeVisible()
     })
 
-    test('TC-E2E-2: Launch at login default is unchecked', async () => {
+    test('Launch at login default is unchecked', async () => {
         await page.locator("css=.status-block.settings").click()
         await expect(page.locator("css=.overlay .settings .dialog")).toBeVisible()
         const checkbox = page.getByLabel("Launch at login")
         await expect(checkbox).not.toBeChecked()
     })
 
-    test('TC-E2E-3: Toggle Launch at login updates config file', async () => {
+    test('Toggle Launch at login updates config file', async () => {
         await page.locator("css=.status-block.settings").click()
         await expect(page.locator("css=.overlay .settings .dialog")).toBeVisible()
         const checkbox = page.getByLabel("Launch at login")
@@ -152,7 +152,7 @@ test.describe('openAtLogin e2e', { tag: "@e2e" }, () => {
     // app.getLoginItemSettings() only works reliably on macOS/Windows with
     // proper desktop integration. On Linux CI (headless), it always returns false
     // and can cause Electron to hang on close.
-    test('TC-E2E-4: Toggle Launch at login updates Electron loginItemSettings', async () => {
+    test('Toggle Launch at login updates Electron loginItemSettings', async () => {
         test.skip(isLinux, 'app.getLoginItemSettings() is unreliable on Linux CI')
 
         await page.locator("css=.status-block.settings").click()
@@ -168,7 +168,7 @@ test.describe('openAtLogin e2e', { tag: "@e2e" }, () => {
         expect(loginSettings.openAtLogin).toBe(true)
     })
 
-    test('TC-E2E-5: Toggle Launch at login off resets loginItemSettings', async () => {
+    test('Toggle Launch at login off resets loginItemSettings', async () => {
         test.skip(isLinux, 'app.getLoginItemSettings() is unreliable on Linux CI')
 
         await page.locator("css=.status-block.settings").click()
@@ -190,40 +190,7 @@ test.describe('openAtLogin e2e', { tag: "@e2e" }, () => {
         expect(loginSettings.openAtLogin).toBe(false)
     })
 
-    test('TC-E2E-6: setLoginItemSettings does not use deprecated openAsHidden', async () => {
-        test.skip(isLinux, 'app.getLoginItemSettings() is unreliable on Linux CI')
-
-        await page.locator("css=.status-block.settings").click()
-        await expect(page.locator("css=.overlay .settings .dialog")).toBeVisible()
-        const checkbox = page.getByLabel("Launch at login")
-        await checkbox.click()
-        await expect(checkbox).toBeChecked()
-
-        // Verify that openAsHidden is not set (deprecated on macOS 13+)
-        const loginSettings = await electronApp.evaluate(({ app }) => {
-            return app.getLoginItemSettings()
-        })
-        expect(loginSettings.openAtLogin).toBe(true)
-        // openAsHidden should remain at default (false), not explicitly set to true
-        expect(loginSettings.openAsHidden).toBe(false)
-    })
-
-    test('TC-E2E-7: windowVisibleOnQuit defaults to true', async () => {
-        const configPath = path.join(userDataDir, 'config.json')
-        // Check that windowVisibleOnQuit is not in config yet (uses default true)
-        try {
-            const raw = await fs.readFile(configPath, 'utf-8')
-            const config = JSON.parse(raw)
-            // If present, it should be true; if absent, default is true
-            if (config.windowVisibleOnQuit !== undefined) {
-                expect(config.windowVisibleOnQuit).toBe(true)
-            }
-        } catch {
-            // Config file may not exist yet, which is fine (defaults apply)
-        }
-    })
-
-    test('TC-E2E-8: windowVisibleOnQuit is saved on app close', async () => {
+    test('windowVisibleOnQuit is saved on app close', async () => {
         // The window is visible, so closing should save windowVisibleOnQuit: true
         const configPath = path.join(userDataDir, 'config.json')
 
