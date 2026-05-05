@@ -39,6 +39,7 @@
                 keyBindings: this.initialSettings.keyBindings || [],
                 metaKey: this.initialSettings.emacsMetaKey,
                 isMac: window.heynote.platform.isMac,
+                isLinux: window.heynote.platform.isLinux,
                 showLineNumberGutter: this.initialSettings.showLineNumberGutter,
                 showFoldGutter: this.initialSettings.showFoldGutter,
                 showWhitespace: this.initialSettings.showWhitespace,
@@ -52,6 +53,7 @@
                 showInDock: this.initialSettings.showInDock,
                 showInMenu: this.initialSettings.showInMenu,
                 alwaysOnTop: this.initialSettings.alwaysOnTop,
+                openAtLogin: this.initialSettings.openAtLogin,
                 bracketClosing: this.initialSettings.bracketClosing,
                 indentType: this.initialSettings.indentType || "space",
                 tabSize: this.initialSettings.tabSize || 4,
@@ -138,6 +140,7 @@
                     showInDock: this.showInDock,
                     showInMenu: this.showInMenu || !this.showInDock,
                     alwaysOnTop: this.alwaysOnTop,
+                    openAtLogin: this.openAtLogin,
                     autoUpdate: this.autoUpdate,
                     autoInstallUpdates: this.autoInstallUpdates,
                     bracketClosing: this.bracketClosing,
@@ -268,6 +271,14 @@
                                         @change="updateSettings"
                                     />
                                     Always on top
+                                </label>
+                                <label v-if="!isLinux">
+                                    <input
+                                        type="checkbox"
+                                        v-model="openAtLogin"
+                                        @change="updateSettings"
+                                    />
+                                    Launch at login
                                 </label>
                             </div>
                         </div>
