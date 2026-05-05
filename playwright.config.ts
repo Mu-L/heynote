@@ -2,8 +2,7 @@ import { defineConfig, devices } from '@playwright/test';
 
 process.env["HEYNOTE_TESTS"] = "1"
 const ELECTRON_E2E_SPECS = [
-    '**/electron-e2e.spec.js',
-    '**/buffer-tree-e2e.spec.js',
+    '**/*-e2e.spec.js',
 ]
 
 /**
