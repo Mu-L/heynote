@@ -36,6 +36,7 @@ For performance reasons it's recommended to use this feature if the Scratch buff
 - Add inline color preview for hex / hsl / rgb values for supported languages (CSS, HTML, JS/TS, Vue, TSX)
 - Improve window show/focus behavior when restoring from tray
 - Add setting for automatically starting Heynote on login
+- Add setting for starting Heynote hidden
 
 
 ## 2.8.2

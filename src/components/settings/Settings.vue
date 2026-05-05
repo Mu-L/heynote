@@ -54,6 +54,7 @@
                 showInMenu: this.initialSettings.showInMenu,
                 alwaysOnTop: this.initialSettings.alwaysOnTop,
                 openAtLogin: this.initialSettings.openAtLogin,
+                startHidden: this.initialSettings.startHidden ?? false,
                 bracketClosing: this.initialSettings.bracketClosing,
                 indentType: this.initialSettings.indentType || "space",
                 tabSize: this.initialSettings.tabSize || 4,
@@ -141,6 +142,7 @@
                     showInMenu: this.showInMenu || !this.showInDock,
                     alwaysOnTop: this.alwaysOnTop,
                     openAtLogin: this.openAtLogin,
+                    startHidden: this.startHidden,
                     autoUpdate: this.autoUpdate,
                     autoInstallUpdates: this.autoInstallUpdates,
                     bracketClosing: this.bracketClosing,
@@ -279,6 +281,14 @@
                                         @change="updateSettings"
                                     />
                                     Launch at login
+                                </label>
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        v-model="startHidden"
+                                        @change="updateSettings"
+                                    />
+                                    Start hidden
                                 </label>
                             </div>
                         </div>

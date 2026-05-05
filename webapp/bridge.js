@@ -11,7 +11,7 @@ import {
     LIBRARY_SEARCH_MATCH,
     LIBRARY_SEARCH_START,
 } from "@/src/common/constants";
-import { generateClientId } from "@/src/common/client-id";
+import { generateClientId, TEST_CLIENT_ID } from "@/src/common/client-id";
 import { CURRENCY_RATES_URL, getCurrencyFetchOptions } from "@/src/common/currency-request";
 import { normalizeLibrarySearchMatch } from "@/src/common/library-search-match";
 import { NoteFormat } from "../src/common/note-format";
@@ -68,6 +68,11 @@ if (__TESTS__ && window.navigator.platform.indexOf("Mac") !== -1) {
 platform.isWebApp = true
 
 function getClientId() {
+    if (__TESTS__) {
+        localStorage.setItem(CLIENT_ID_KEY, TEST_CLIENT_ID)
+        return TEST_CLIENT_ID
+    }
+
     let clientId = localStorage.getItem(CLIENT_ID_KEY)
     if (!clientId) {
         clientId = generateClientId()
@@ -119,6 +124,7 @@ let initialSettings = {
     showTabs: true,
     showTabsInFullscreen: true,
     leftPanelWidth: DEFAULT_LEFT_PANEL_WIDTH,
+    startHidden: false,
     colorPreviewEnabled: true,
     cursorBlinkRate: 1000,
     librarySearchSettings: {

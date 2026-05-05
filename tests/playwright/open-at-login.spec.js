@@ -9,11 +9,11 @@ test.beforeEach(async ({ page }) => {
     await heynotePage.goto()
 });
 
-test("Launch at login checkbox is hidden in webapp mode", async ({ page }) => {
+test("Launch at login and start hidden checkboxes are hidden in webapp mode", async ({ page }) => {
     await page.locator("css=.status-block.settings").click()
     await expect(page.locator("css=.overlay .settings .dialog")).toBeVisible()
-    const checkbox = page.getByLabel("Launch at login")
-    await expect(checkbox).toHaveCount(0)
+    await expect(page.getByLabel("Launch at login")).toHaveCount(0)
+    await expect(page.getByLabel("Start hidden")).toHaveCount(0)
 })
 
 test("Always on top checkbox is hidden in webapp mode", async ({ page }) => {

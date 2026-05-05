@@ -2,6 +2,8 @@ const BASE62_ALPHABET = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrs
 const CLIENT_ID_LENGTH = 22
 const CLIENT_ID_BYTES = 16
 
+export const TEST_CLIENT_ID = "testing"
+
 function getRandomBytes(length) {
     const bytes = new Uint8Array(length)
     globalThis.crypto.getRandomValues(bytes)
