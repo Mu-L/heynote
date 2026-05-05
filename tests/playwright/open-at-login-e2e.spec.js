@@ -7,6 +7,7 @@ import { spawn } from 'node:child_process'
 import { HeynotePage } from "./test-utils.js"
 
 const isLinux = process.platform === 'linux'
+const supportsOpenAtLogin = process.platform === 'darwin' || process.platform === 'win32'
 
 async function ensureElectronBuild() {
     const mainPath = path.join(process.cwd(), 'dist-electron', 'main', 'index.js')
@@ -115,6 +116,8 @@ test.describe('openAtLogin e2e', { tag: "@e2e" }, () => {
     })
 
     test('Launch at login checkbox is visible in Electron', async () => {
+        test.skip(!supportsOpenAtLogin, 'Launch at login is supported only on macOS/Windows')
+
         await expect(page).toHaveTitle(/Heynote/i)
         await page.locator("css=.status-block.settings").click()
         await expect(page.locator("css=.overlay .settings .dialog")).toBeVisible()
@@ -122,7 +125,19 @@ test.describe('openAtLogin e2e', { tag: "@e2e" }, () => {
         await expect(checkbox).toBeVisible()
     })
 
+    test('Launch at login checkbox is hidden in Electron on Linux', async () => {
+        test.skip(!isLinux, 'Linux does not use Electron login item settings')
+
+        await expect(page).toHaveTitle(/Heynote/i)
+        await page.locator("css=.status-block.settings").click()
+        await expect(page.locator("css=.overlay .settings .dialog")).toBeVisible()
+        const checkbox = page.getByLabel("Launch at login")
+        await expect(checkbox).toHaveCount(0)
+    })
+
     test('Launch at login default is unchecked', async () => {
+        test.skip(!supportsOpenAtLogin, 'Launch at login is supported only on macOS/Windows')
+
         await page.locator("css=.status-block.settings").click()
         await expect(page.locator("css=.overlay .settings .dialog")).toBeVisible()
         const checkbox = page.getByLabel("Launch at login")
@@ -130,6 +145,8 @@ test.describe('openAtLogin e2e', { tag: "@e2e" }, () => {
     })
 
     test('Toggle Launch at login updates config file', async () => {
+        test.skip(!supportsOpenAtLogin, 'Launch at login is supported only on macOS/Windows')
+
         await page.locator("css=.status-block.settings").click()
         await expect(page.locator("css=.overlay .settings .dialog")).toBeVisible()
         const checkbox = page.getByLabel("Launch at login")
@@ -149,11 +166,8 @@ test.describe('openAtLogin e2e', { tag: "@e2e" }, () => {
         }).toBe(true)
     })
 
-    // app.getLoginItemSettings() only works reliably on macOS/Windows with
-    // proper desktop integration. On Linux CI (headless), it always returns false
-    // and can cause Electron to hang on close.
     test('Toggle Launch at login updates Electron loginItemSettings', async () => {
-        test.skip(isLinux, 'app.getLoginItemSettings() is unreliable on Linux CI')
+        test.skip(!supportsOpenAtLogin, 'Launch at login is supported only on macOS/Windows')
 
         await page.locator("css=.status-block.settings").click()
         await expect(page.locator("css=.overlay .settings .dialog")).toBeVisible()
@@ -169,7 +183,7 @@ test.describe('openAtLogin e2e', { tag: "@e2e" }, () => {
     })
 
     test('Toggle Launch at login off resets loginItemSettings', async () => {
-        test.skip(isLinux, 'app.getLoginItemSettings() is unreliable on Linux CI')
+        test.skip(!supportsOpenAtLogin, 'Launch at login is supported only on macOS/Windows')
 
         await page.locator("css=.status-block.settings").click()
         await expect(page.locator("css=.overlay .settings .dialog")).toBeVisible()
@@ -190,20 +204,20 @@ test.describe('openAtLogin e2e', { tag: "@e2e" }, () => {
         expect(loginSettings.openAtLogin).toBe(false)
     })
 
-    test('windowVisibleOnQuit is saved on app close', async () => {
-        // The window is visible, so closing should save windowVisibleOnQuit: true
+    test('windowConfig.visibleOnQuit is saved on app close', async () => {
+        // The window is visible, so closing should save visibleOnQuit: true.
         const configPath = path.join(userDataDir, 'config.json')
 
         // Close the app gracefully
         await closeElectronApp(electronApp)
         electronApp = null
 
-        // Read config and verify windowVisibleOnQuit was saved
+        // Read config and verify visibleOnQuit was saved.
         await expect.poll(async () => {
             try {
                 const raw = await fs.readFile(configPath, 'utf-8')
                 const config = JSON.parse(raw)
-                return config.windowVisibleOnQuit
+                return config.windowConfig?.visibleOnQuit
             } catch {
                 return undefined
             }

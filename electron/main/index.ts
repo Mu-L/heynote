@@ -71,6 +71,7 @@ let initErrors: string[] = []
 const preload = join(__dirname, '../preload/index.js')
 const url = process.env.VITE_DEV_SERVER_URL
 const indexHtml = join(process.env.DIST, 'index.html')
+const OPEN_AT_LOGIN_ARG = "--heynote-open-at-login"
 
 // if this version is a beta version, set the release channel to beta
 const isBetaVersion = app.getVersion().includes("beta")
@@ -112,38 +113,49 @@ function showWindow() {
     }
 }
 
+function wasOpenedAtLogin() {
+    if (isMac) {
+        return app.getLoginItemSettings().wasOpenedAtLogin
+    }
+    if (isWindows) {
+        return process.argv.includes(OPEN_AT_LOGIN_ARG)
+    }
+    return false
+}
+
 async function createWindow() {
     // read any stored window settings from config, or use defaults
-    let windowConfig = {
+    let windowBounds = {
         width: CONFIG.get("windowConfig.width", 940) as number,
         height: CONFIG.get("windowConfig.height", 720) as number,
-        isMaximized: CONFIG.get("windowConfig.isMaximized", false) as boolean,
-        isFullScreen: CONFIG.get("windowConfig.isFullScreen", false) as boolean,
         x: CONFIG.get("windowConfig.x"),
         y: CONFIG.get("windowConfig.y"),
     }
+    const windowWasMaximized = CONFIG.get("windowConfig.isMaximized", false) as boolean
+    const windowWasFullScreen = CONFIG.get("windowConfig.isFullScreen", false) as boolean
+    const windowWasVisibleOnQuit = CONFIG.get("windowConfig.visibleOnQuit", true)
 
-    // windowConfig.x and windowConfig.y will be undefined when config file is missing, e.g. first time run
-    if (windowConfig.x !== undefined && windowConfig.y !== undefined) {
+    // windowBounds.x and windowBounds.y will be undefined when config file is missing, e.g. first time run
+    if (windowBounds.x !== undefined && windowBounds.y !== undefined) {
         // check if window is outside of screen, or too large
         const display = screen.getDisplayMatching({
-            x: windowConfig.x,
-            y: windowConfig.y,
-            width: windowConfig.width,
-            height: windowConfig.height,
+            x: windowBounds.x,
+            y: windowBounds.y,
+            width: windowBounds.width,
+            height: windowBounds.height,
         })
         //console.log("bounds:", display.bounds, "workArea:", display.workArea)
         const area = display.workArea
-        if (windowConfig.width > area.width) {
-            windowConfig.width = area.width
+        if (windowBounds.width > area.width) {
+            windowBounds.width = area.width
         }
-        if (windowConfig.height > area.height) {
-            windowConfig.height = area.height
+        if (windowBounds.height > area.height) {
+            windowBounds.height = area.height
         }
-        if (windowConfig.x + windowConfig.width > area.x + area.width || windowConfig.y + windowConfig.height > area.y + area.height) {
+        if (windowBounds.x + windowBounds.width > area.x + area.width || windowBounds.y + windowBounds.height > area.y + area.height) {
             // window is outside of screen, reset position
-            windowConfig.x = undefined
-            windowConfig.y = undefined
+            windowBounds.x = undefined
+            windowBounds.y = undefined
         }
     }
 
@@ -181,14 +193,17 @@ async function createWindow() {
                 symbolColor: nativeTheme.shouldUseDarkColors ? '#aaa' : '#333',
             }, 
         } : {})
-    }, windowConfig))
+    }, windowBounds))
 
     // maximize window if it was maximized last time
-    if (windowConfig.isMaximized) {
+    if (windowWasMaximized) {
         win.maximize()
     }
-    if (windowConfig.isFullScreen) {
+    if (windowWasFullScreen) {
         win.setFullScreen(true)
+    }
+    if (wasOpenedAtLogin() && !windowWasVisibleOnQuit) {
+        win.hide()
     }
 
 
@@ -206,19 +221,20 @@ async function createWindow() {
             win.hide()
             return
         }
+
+        // Save window config
+        CONFIG.set("windowConfig", {
+            ...win.getNormalBounds(),
+            isMaximized: win.isMaximized(),
+            isFullScreen: win.isFullScreen(),
+            visibleOnQuit: win.isVisible(),
+        })
+
         // Prevent the window from closing, and send a message to the renderer which will in turn
         // send a message to the main process to save the current buffer and close the window.
         if (!!fileLibrary && !fileLibrary.contentSaved) {
             event.preventDefault()
             win?.webContents.send(WINDOW_CLOSE_EVENT)
-        } else {
-            // save window config
-            Object.assign(windowConfig, {
-                isMaximized: win.isMaximized(),
-                isFullScreen: win.isFullScreen(),
-            }, win.getNormalBounds())
-            CONFIG.set("windowConfig", windowConfig)
-            CONFIG.set("windowVisibleOnQuit", win.isVisible())
         }
     })
 
@@ -396,8 +412,14 @@ function registerShowInMenu() {
 }
 
 function registerOpenAtLogin() {
+    if (!isMac && !isWindows) {
+        return
+    }
     const openAtLogin = CONFIG.get("settings.openAtLogin") as boolean
-    app.setLoginItemSettings({ openAtLogin })
+    app.setLoginItemSettings(isWindows ? {
+        openAtLogin,
+        args: openAtLogin ? [OPEN_AT_LOGIN_ARG] : [],
+    } : { openAtLogin })
 }
 
 function registerAlwaysOnTop() {
@@ -447,12 +469,6 @@ app.whenReady().then(createWindow).then(async () => {
     registerShowInMenu()
     registerAlwaysOnTop()
     registerOpenAtLogin()
-
-    // If the app was launched at login and the window was hidden when last quit, hide the window
-    const loginSettings = app.getLoginItemSettings()
-    if (loginSettings.wasOpenedAtLogin && !CONFIG.get("windowVisibleOnQuit")) {
-        win.hide()
-    }
 })
 
 app.on("before-quit", () => {

@@ -26,6 +26,7 @@ const schema = {
             y: {type: "number"},
             isMaximized: {type: "boolean"},
             isFullScreen: {type: "boolean"},
+            visibleOnQuit: {type: "boolean", default: true},
         },
         additionalProperties: false,
     },
@@ -132,8 +133,6 @@ const schema = {
             },
         },
     },
-
-    windowVisibleOnQuit: {type: "boolean", default: true},
 
     currency: {
         type: "object",

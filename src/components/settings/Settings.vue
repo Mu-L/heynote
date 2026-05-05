@@ -39,6 +39,7 @@
                 keyBindings: this.initialSettings.keyBindings || [],
                 metaKey: this.initialSettings.emacsMetaKey,
                 isMac: window.heynote.platform.isMac,
+                isLinux: window.heynote.platform.isLinux,
                 showLineNumberGutter: this.initialSettings.showLineNumberGutter,
                 showFoldGutter: this.initialSettings.showFoldGutter,
                 showWhitespace: this.initialSettings.showWhitespace,
@@ -271,7 +272,7 @@
                                     />
                                     Always on top
                                 </label>
-                                <label>
+                                <label v-if="!isLinux">
                                     <input
                                         type="checkbox"
                                         v-model="openAtLogin"
